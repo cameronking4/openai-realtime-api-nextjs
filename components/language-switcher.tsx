@@ -19,6 +19,7 @@ export function LanguageSwitcher() {
     { code: 'es', label: 'Español', icon: '🇪🇸' },
     { code: 'fr', label: 'Français', icon: '🇫🇷' },
     { code: 'zh', label: '中文', icon: '🇨🇳' },
+    { code: 'ua', label: 'Українська', icon: '🇺🇦' },
   ]
 
   const selectedLanguage = languages.find(lang => lang.code === locale)
