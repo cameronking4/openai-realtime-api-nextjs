@@ -1,8 +1,8 @@
 export const en = {
     broadcast: {
-        end: "End Broadcasting",
-        live: "Live",
-        start: "Start Broadcasting"
+        end: "Sessions Ended",
+        live: "Session Live",
+        start: "Start Your Session"
     },
     header: {
         title: "About",
@@ -38,7 +38,7 @@ export const en = {
         info: "Toggling Voice Assistant...",
         language: "Language switched from",
         session: "Session established",
-        success: "We're live, baby!",
+        success: "We're live!",
         toggle: "Toggling Voice Assistant..."
     },
     tokenUsage: {
