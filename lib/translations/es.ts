@@ -14,15 +14,15 @@ export const es = {
     github: "Estrella en GitHub",
     language: "Idioma",
     light: "Claro",
-    logo: "OpenAI Realtime Starter",
+    logo: "Healing AI Guide",
     system: "Sistema",
     theme: "Cambiar tema",
     twitter: "Seguir en"
   },
   hero: {
-    badge: "Next.js + shadcn/ui",
-    subtitle: "Haga una demostración haciendo clic en el botón de abajo y pruebe las herramientas disponibles",
-    title: "API en tiempo real de OpenAI (WebRTC)"
+    badge: "",
+    subtitle: "Inicie un chat en vivo con su Asistente Living Well",
+    title: "Asistente Living Well"
   },
   messageControls: {
     content: "Contenido",

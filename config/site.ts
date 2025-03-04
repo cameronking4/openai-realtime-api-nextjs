@@ -1,7 +1,7 @@
 export const siteConfig = {
-  name: "OpenAI Realtime Starter",
+  name: "Healing AI Guide",
   url: "https://openai-rt-shadcn.vercel.app",
-  description: "OpenAI Realtime Starter is a template for Realtime Voice AI with Shadcn UI components. It demonstrates tool calling with a WebRTC hook.",
+  description: " Healing AI Guide is a template for Realtime Voice AI with Shadcn UI components. It demonstrates tool calling with a WebRTC hook.",
   author: "cameronking4",
   links: {
     twitter: "https://x.com/cameronyking4",

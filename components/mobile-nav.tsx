@@ -35,10 +35,18 @@ export function MobileNav() {
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 text-2xl"
               >
-                  {siteConfig.name}
-                <Badge variant="outline" className="text-normal">
-                  {t('header.beta')}
-                </Badge>
+                <div className="h-8 flex items-center">
+                  <img 
+                    src="/livingwell_logo_horizontal-02-01.png" 
+                    alt="Healing AI Guide Logo" 
+                    className="h-full object-contain"
+                    onError={(e) => {
+                      // Fallback to text if image fails to load
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                  <span className="ml-2">{siteConfig.name}</span>
+                </div>
               </Link>
             </DialogTitle>
           </DialogHeader>

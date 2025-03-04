@@ -20,9 +20,9 @@ export const zh = {
         twitter: "在推特上关注"
     },
     hero: {
-        badge: "Next.js + shadcn/ui",
-        subtitle: "点击下方按钮进行演示并尝试可用工具",
-        title: "OpenAI 实时 API (WebRTC)"
+        badge: "",
+        subtitle: "开始与您的Living Well助手进行实时聊天",
+        title: "Living Well助手"
     },
     messageControls: {
         content: "内容",

@@ -9,7 +9,13 @@ export default {
   ],
   theme: {
   	extend: {
+      fontFamily: {
+        sans: ["var(--font-poppins)"],
+      },
   		colors: {
+        neutral: {
+          800: 'hsl(var(--neutral-800))',
+        },
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

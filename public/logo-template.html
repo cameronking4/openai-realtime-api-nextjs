@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Logo to Base64</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        img {
+            max-width: 300px;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            margin-top: 20px;
+        }
+        button {
+            margin-top: 10px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Living Well Logo to Base64</h1>
+    <img id="logo" src="https://uploads-ssl.webflow.com/627ae1140a7cba3149fac972/627ae1140a7cba3149fac972_livingwell_logo_horizontal-small_med.png" alt="Living Well Logo">
+    <button onclick="convertToBase64()">Convert to Base64</button>
+    <textarea id="result"></textarea>
+
+    <script>
+        function convertToBase64() {
+            const img = document.getElementById('logo');
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const dataURL = canvas.toDataURL('image/png');
+            document.getElementById('result').value = dataURL;
+        }
+    </script>
+</body>
+</html> 
