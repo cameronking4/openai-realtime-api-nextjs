@@ -16,13 +16,16 @@ import Image from "next/image";
 import { VoiceSelector } from "@/components/voice-select";
 import { ToolsEducation } from "@/components/tools-education";
 import { SidePanelTokenUsage } from "./side-panel-token-usage";
+import { SidePanelLogs } from "./side-panel-logs";
+import { Message as MessageType } from "@/types";
 
 export interface SidePanelProps {
   voice: string;
   onVoiceChange: (value: string) => void;
+  messages?: MessageType[];
 }
 
-export function SidePanel({ voice, onVoiceChange }: SidePanelProps) {
+export function SidePanel({ voice, onVoiceChange, messages = [] }: SidePanelProps) {
   const { t } = useTranslations();
   const [open, setOpen] = React.useState(false);
 
@@ -64,18 +67,25 @@ export function SidePanel({ voice, onVoiceChange }: SidePanelProps) {
           </div>
           
           <div className="border-t pt-4">
+            <h3 className="text-lg font-medium mb-2">{t('tokenUsage.usage')}</h3>
+            <div className="p-2">
+              <SidePanelTokenUsage />
+            </div>
+          </div>
+          
+          <div className="border-t pt-4">
+            <h3 className="text-lg font-medium mb-2">{t('sidePanel.logs')}</h3>
+            <div className="p-2">
+              <SidePanelLogs msgs={messages} />
+            </div>
+          </div>
+          
+          <div className="border-t pt-4">
             <h3 className="text-lg font-medium mb-2">{t('sidePanel.settings')}</h3>
             <div className="space-y-2">
               <div className="p-2 rounded-md hover:bg-muted transition-colors">
                 {t('sidePanel.language')}: {t('language')}
               </div>
-            </div>
-          </div>
-          
-          <div className="border-t pt-4">
-            <h3 className="text-lg font-medium mb-2">{t('tokenUsage.usage')}</h3>
-            <div className="p-2">
-              <SidePanelTokenUsage />
             </div>
           </div>
           

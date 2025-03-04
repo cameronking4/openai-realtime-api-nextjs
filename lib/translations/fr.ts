@@ -24,7 +24,8 @@ export const fr = {
         home: "Accueil",
         tools: "Outils Disponibles",
         settings: "Paramètres",
-        language: "Langue"
+        language: "Langue",
+        logs: "Journaux de Conversation"
     },
     hero: {
         badge: "",

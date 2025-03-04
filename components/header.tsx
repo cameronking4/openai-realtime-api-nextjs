@@ -12,8 +12,13 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { useTranslations } from "@/components/translations-context";
 import { SidePanel } from "./side-panel";
 import { useVoiceContext } from "@/contexts/voice-context";
+import { Message as MessageType } from "@/types";
 
-export function Header() {
+interface HeaderProps {
+  messages?: MessageType[];
+}
+
+export function Header({ messages = [] }: HeaderProps) {
   const { t } = useTranslations();
   const { voice, setVoice } = useVoiceContext();
   
@@ -26,7 +31,7 @@ export function Header() {
     >
       <div className="container mx-auto px-4 h-12 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <SidePanel voice={voice} onVoiceChange={setVoice} />
+          <SidePanel voice={voice} onVoiceChange={setVoice} messages={messages} />
           <MobileNav />
         </div>
         <motion.nav

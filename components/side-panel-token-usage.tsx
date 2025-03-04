@@ -4,7 +4,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Card, CardContent, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import { useTranslations } from "@/components/translations-context"
-import { useTokenContext } from "@/contexts/token-context"
+import { useTokenContext } from "../contexts/token-context"
 import { Separator } from "@/components/ui/separator";
 
 // Cost rates per 1 million tokens

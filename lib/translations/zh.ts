@@ -24,7 +24,8 @@ export const zh = {
         home: "首页",
         tools: "可用工具",
         settings: "设置",
-        language: "语言"
+        language: "语言",
+        logs: "对话记录"
     },
     hero: {
         badge: "",

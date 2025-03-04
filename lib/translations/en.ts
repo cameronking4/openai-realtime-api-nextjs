@@ -24,7 +24,8 @@ export const en = {
         home: "Home",
         tools: "Available Tools",
         settings: "Settings",
-        language: "Language"
+        language: "Language",
+        logs: "Conversation Logs"
     },
     hero: {
         badge: "",

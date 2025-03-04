@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/header";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme-provider";
 import { siteConfig } from "@/config/site";
@@ -10,8 +9,8 @@ import { Analytics } from "@vercel/analytics/react"
 import { TranslationsProvider } from "@/components/translations-context"
 import { Banner } from "@/components/banner";
 import { Footer } from "@/components/footer";
-import { VoiceProvider } from "@/contexts/voice-context";
-import { TokenProvider } from "@/contexts/token-context";
+import { TokenProvider } from "../contexts/token-context";
+import { VoiceProvider } from "../contexts/voice-context";
 
 const poppins = Poppins({
   weight: ['400', '500', '600', '700'],
@@ -41,12 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          "min-h-dvh bg-background font-sans antialiased",
-          poppins.variable
-        )}
-      >
+      <body className={cn("min-h-dvh bg-background font-sans antialiased", poppins.variable)}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -54,19 +48,16 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TranslationsProvider>
-            <TokenProvider>
-              <VoiceProvider>
+            <VoiceProvider>
+              <TokenProvider>
                 <div className="relative flex min-h-dvh flex-col bg-background items-center">
-                  <Header />
-                  {/* <Banner /> */}
-                  <main className="flex flex-1 justify-center items-start">
-                    {children}
-                  </main>
+                  <Banner />
+                  {children}
                   <Footer />
                 </div>
                 <Toaster />
-              </VoiceProvider>
-            </TokenProvider>
+              </TokenProvider>
+            </VoiceProvider>
           </TranslationsProvider>
         </ThemeProvider>
         <Analytics />

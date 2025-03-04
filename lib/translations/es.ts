@@ -24,7 +24,8 @@ export const es = {
     home: "Inicio",
     tools: "Herramientas Disponibles",
     settings: "Configuración",
-    language: "Idioma"
+    language: "Idioma",
+    logs: "Registros de Conversación"
   },
   hero: {
     badge: "",
