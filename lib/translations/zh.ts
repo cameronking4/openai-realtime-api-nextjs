@@ -19,6 +19,13 @@ export const zh = {
         theme: "切换主题",
         twitter: "在推特上关注"
     },
+    sidePanel: {
+        quickLinks: "快速链接",
+        home: "首页",
+        tools: "可用工具",
+        settings: "设置",
+        language: "语言"
+    },
     hero: {
         badge: "",
         subtitle: "开始与您的Living Well助手进行实时聊天",
@@ -45,7 +52,12 @@ export const zh = {
         input: "输入令牌",
         output: "输出令牌",
         total: "总令牌数",
-        usage: "令牌使用量"
+        usage: "令牌使用量",
+        noData: "尚无令牌使用数据。开始会话以查看令牌使用情况。",
+        cost: "估计成本",
+        inputCost: "输入成本",
+        outputCost: "输出成本",
+        totalCost: "总成本"
     },
     tools: {
         availableTools: {

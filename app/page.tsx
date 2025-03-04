@@ -1,22 +1,24 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect } from "react"
 import useWebRTCAudioSession from "@/hooks/use-webrtc"
 import { tools } from "@/lib/tools"
 import { Welcome } from "@/components/welcome"
-import { VoiceSelector } from "@/components/voice-select"
 import { BroadcastButton } from "@/components/broadcast-button"
 import { StatusDisplay } from "@/components/status"
-import { TokenUsageDisplay } from "@/components/token-usage"
 import { MessageControls } from "@/components/message-controls"
-import { ToolsEducation } from "@/components/tools-education"
 import { TextInput } from "@/components/text-input"
 import { motion } from "framer-motion"
 import { useToolsFunctions } from "@/hooks/use-tools"
+import { useVoiceContext } from "@/contexts/voice-context"
+import { useTokenContext } from "@/contexts/token-context"
 
 const App: React.FC = () => {
-  // State for voice selection
-  const [voice, setVoice] = useState("ash")
+  // Get voice from context
+  const { voice } = useVoiceContext();
+  
+  // Get token context
+  const { updateMessages, resetTokenUsage } = useTokenContext();
 
   // WebRTC Audio Session Hook
   const {
@@ -28,6 +30,22 @@ const App: React.FC = () => {
     conversation,
     sendTextMessage
   } = useWebRTCAudioSession(voice, tools)
+
+  // Update token context with messages
+  useEffect(() => {
+    updateMessages(msgs);
+  }, [msgs, updateMessages]);
+
+  // Reset token usage when starting a new session
+  useEffect(() => {
+    if (!isSessionActive) {
+      // Don't reset when the component first mounts
+      if (msgs.length > 0) {
+        // Only reset when a session ends, not on initial load
+        resetTokenUsage();
+      }
+    }
+  }, [isSessionActive, msgs.length, resetTokenUsage]);
 
   // Get all tools functions
   const toolsFunctions = useToolsFunctions();
@@ -64,15 +82,12 @@ const App: React.FC = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.4 }}
         >
-          <VoiceSelector value={voice} onValueChange={setVoice} />
-          
           <div className="flex flex-col items-center gap-4">
             <BroadcastButton 
               isSessionActive={isSessionActive} 
               onClick={handleStartStopClick}
             />
           </div>
-          {msgs.length > 4 && <TokenUsageDisplay messages={msgs} />}
           {status && (
             <motion.div 
               className="w-full flex flex-col gap-2"
@@ -91,9 +106,6 @@ const App: React.FC = () => {
         </motion.div>
         
         {status && <StatusDisplay status={status} />}
-        <div className="w-full flex flex-col items-center gap-4">
-          <ToolsEducation />
-        </div>
       </motion.div>
     </main>
   )

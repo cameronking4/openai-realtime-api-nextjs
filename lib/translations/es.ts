@@ -19,6 +19,13 @@ export const es = {
     theme: "Cambiar tema",
     twitter: "Seguir en"
   },
+  sidePanel: {
+    quickLinks: "Enlaces Rápidos",
+    home: "Inicio",
+    tools: "Herramientas Disponibles",
+    settings: "Configuración",
+    language: "Idioma"
+  },
   hero: {
     badge: "",
     subtitle: "Inicie un chat en vivo con su Asistente Living Well",
@@ -45,7 +52,12 @@ export const es = {
     input: "Tokens de Entrada",
     output: "Tokens de Salida",
     total: "Tokens Totales",
-    usage: "Uso de Tokens"
+    usage: "Uso de Tokens",
+    noData: "Aún no hay datos de uso de tokens disponibles. Inicie una sesión para ver el uso de tokens.",
+    cost: "Costo Estimado",
+    inputCost: "Costo de Entrada",
+    outputCost: "Costo de Salida",
+    totalCost: "Costo Total"
   },
   tools: {
     availableTools: {

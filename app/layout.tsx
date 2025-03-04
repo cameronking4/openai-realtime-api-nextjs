@@ -10,6 +10,8 @@ import { Analytics } from "@vercel/analytics/react"
 import { TranslationsProvider } from "@/components/translations-context"
 import { Banner } from "@/components/banner";
 import { Footer } from "@/components/footer";
+import { VoiceProvider } from "@/contexts/voice-context";
+import { TokenProvider } from "@/contexts/token-context";
 
 const poppins = Poppins({
   weight: ['400', '500', '600', '700'],
@@ -52,15 +54,19 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TranslationsProvider>
-            <div className="relative flex min-h-dvh flex-col bg-background items-center">
-              <Header />
-              {/* <Banner /> */}
-              <main className="flex flex-1 justify-center items-start">
-                {children}
-              </main>
-              <Footer />
-            </div>
-            <Toaster />
+            <TokenProvider>
+              <VoiceProvider>
+                <div className="relative flex min-h-dvh flex-col bg-background items-center">
+                  <Header />
+                  {/* <Banner /> */}
+                  <main className="flex flex-1 justify-center items-start">
+                    {children}
+                  </main>
+                  <Footer />
+                </div>
+                <Toaster />
+              </VoiceProvider>
+            </TokenProvider>
           </TranslationsProvider>
         </ThemeProvider>
         <Analytics />

@@ -19,6 +19,13 @@ export const fr = {
         theme: "Changer le thème",
         twitter: "Suivre sur"
     },
+    sidePanel: {
+        quickLinks: "Liens Rapides",
+        home: "Accueil",
+        tools: "Outils Disponibles",
+        settings: "Paramètres",
+        language: "Langue"
+    },
     hero: {
         badge: "",
         subtitle: "Commencez une conversation en direct avec votre Assistant Living Well",
@@ -45,7 +52,12 @@ export const fr = {
         input: "Tokens d'Entrée",
         output: "Tokens de Sortie",
         total: "Tokens Totaux",
-        usage: "Utilisation des Tokens"
+        usage: "Utilisation des Tokens",
+        noData: "Aucune donnée d'utilisation de tokens disponible. Démarrez une session pour voir l'utilisation des tokens.",
+        cost: "Coût Estimé",
+        inputCost: "Coût d'Entrée",
+        outputCost: "Coût de Sortie",
+        totalCost: "Coût Total"
     },
     tools: {
         availableTools: {

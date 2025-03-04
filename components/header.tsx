@@ -10,9 +10,13 @@ import { TwitterIcon, StarIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { useTranslations } from "@/components/translations-context";
+import { SidePanel } from "./side-panel";
+import { useVoiceContext } from "@/contexts/voice-context";
 
 export function Header() {
-  const { t } = useTranslations()
+  const { t } = useTranslations();
+  const { voice, setVoice } = useVoiceContext();
+  
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
@@ -21,7 +25,10 @@ export function Header() {
       className="w-full sticky top-0 z-50 border-b bg-background"
     >
       <div className="container mx-auto px-4 h-12 flex items-center justify-between gap-2">
-        <MobileNav />
+        <div className="flex items-center gap-2">
+          <SidePanel voice={voice} onVoiceChange={setVoice} />
+          <MobileNav />
+        </div>
         <motion.nav
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -35,7 +42,7 @@ export function Header() {
             >
               <img 
                 src="/livingwell_logo_horizontal-02-01.png" 
-                alt="Healing AI Guide Logo" 
+                alt="Living Well Assistant Logo" 
                 className="h-full object-contain"
                 onError={(e) => {
                   // Fallback to text if image fails to load

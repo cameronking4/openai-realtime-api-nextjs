@@ -1,12 +1,12 @@
 export const en = {
     broadcast: {
-        end: "Sessions Ended",
-        live: "Session Live",
-        start: "Start Your Session"
+        end: "End Session",
+        live: "Session is Live",
+        start: "Start Live Session"
     },
     header: {
         title: "About",
-        about: "This is a project that aims to demonstrate how to use OpenAI Realtime API with WebRTC in a modern Next 15 project. It has shadcn/ui components already installed and the WebRTC audio session hook already implemented. Clone the project and define your own tools.",
+        about: "This is a project that aims to demonstrate how live AI voice chat can be used to help people with their health and wellbeing.",
        // banner: "🎉 Check out the new OpenAI Realtime Blocks UI Library for Next.js!",
         bannerLink: "Learn more →",
         beta: "Beta",
@@ -18,6 +18,13 @@ export const en = {
         system: "System",
         theme: "Toggle theme",
         twitter: "Follow on"
+    },
+    sidePanel: {
+        quickLinks: "Quick Links",
+        home: "Home",
+        tools: "Available Tools",
+        settings: "Settings",
+        language: "Language"
     },
     hero: {
         badge: "",
@@ -45,7 +52,12 @@ export const en = {
         input: "Input Tokens",
         output: "Output Tokens",
         total: "Total Tokens",
-        usage: "Token Usage"
+        usage: "Token Usage",
+        noData: "No token usage data available yet. Start a session to see token usage.",
+        cost: "Estimated Cost",
+        inputCost: "Input Cost",
+        outputCost: "Output Cost",
+        totalCost: "Total Cost"
     },
     tools: {
         availableTools: {
