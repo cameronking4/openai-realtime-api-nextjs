@@ -6,7 +6,17 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "pm2:dev": "pm2 start ecosystem.config.js",
+    "pm2:prod": "pm2 start ecosystem.config.js --env production",
+    "pm2:stop": "pm2 stop ecosystem.config.js",
+    "pm2:restart": "pm2 restart ecosystem.config.js",
+    "pm2:delete": "pm2 delete ecosystem.config.js",
+    "pm2:logs": "pm2 logs",
+    "pm2:logs-backend": "pm2 logs lw-ai",
+    "pm2:logs-backend-tail": "pm2 logs lw-ai --lines 100 --nostream",
+    "pm2:monit": "pm2 monit",
+    "pm2:status": "pm2 status"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -63,6 +73,7 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.0.3",
     "vaul": "^1.1.2",
+    "ws": "^8.18.1",
     "zod": "^3.24.1"
   },
   "devDependencies": {
