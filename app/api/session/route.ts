@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { PSYCHO_ONCOLOGY_ASSESSMENT_PROMPT } from "../../../prompts/ai-conversation-templates";
 
 // Read the API key directly from .env.local file
 let apiKey = '';
@@ -41,7 +42,7 @@ export async function POST() {
                 model: "gpt-4o-realtime-preview-2024-12-17",
                 voice: "alloy",
                 modalities: ["audio", "text"],
-                instructions:"Start conversation with the user by saying 'Hello, how can I help you today?' Use the available tools when relevant. After executing a tool, you will need to respond (create a subsequent conversation item) to the user sharing the function result or error. If you do not respond with additional message with function result, user will not know you successfully executed the tool. Speak and respond in the language of the user.",
+                instructions: PSYCHO_ONCOLOGY_ASSESSMENT_PROMPT,
                 tool_choice: "auto",
             }),
         });

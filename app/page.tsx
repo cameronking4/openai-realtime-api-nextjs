@@ -14,6 +14,7 @@ import { useTokenContext } from "../contexts/token-context"
 import { Message as MessageType } from "@/types"
 import Transcriber from "@/components/ui/transcriber"
 import { Header } from "@/components/header"
+import RealtimeBlock from "@/components/realtime-block"
 
 const App: React.FC = () => {
   // Get voice from context
@@ -33,7 +34,8 @@ const App: React.FC = () => {
     handleStartStopClick,
     msgs,
     conversation,
-    sendTextMessage
+    sendTextMessage,
+    currentVolume
   } = useWebRTCAudioSession(voice, tools)
 
   // Update token context with messages
@@ -80,6 +82,13 @@ const App: React.FC = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.4 }}
           >
+            <RealtimeBlock 
+              voice={voice}
+              isSessionActive={isSessionActive}
+              handleStartStopClick={handleStartStopClick}
+              msgs={msgs}
+              currentVolume={currentVolume}
+            />
             <div className="flex flex-col items-center gap-4">
               <BroadcastButton 
                 isSessionActive={isSessionActive} 
