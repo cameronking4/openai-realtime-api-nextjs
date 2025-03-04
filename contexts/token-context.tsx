@@ -46,7 +46,8 @@ export function TokenProvider({ children }: { children: ReactNode }) {
   };
 
   const resetTokenUsage = () => {
-    setMessages([]);
+    // Don't clear messages, only reset token usage
+    // setMessages([]);
     setTokenUsage(null);
   };
 

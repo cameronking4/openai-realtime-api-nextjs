@@ -495,8 +495,6 @@ export default function useWebRTCAudioSession(
     setCurrentVolume(0);
     setIsSessionActive(false);
     setStatus("Session stopped");
-    setMsgs([]);
-    setConversation([]);
   }
 
   /**

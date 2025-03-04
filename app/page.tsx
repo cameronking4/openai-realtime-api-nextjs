@@ -43,17 +43,6 @@ const App: React.FC = () => {
     setHeaderMessages(msgs);
   }, [msgs, updateMessages]);
 
-  // Reset token usage when starting a new session
-  useEffect(() => {
-    if (!isSessionActive) {
-      // Don't reset when the component first mounts
-      if (msgs.length > 0) {
-        // Only reset when a session ends, not on initial load
-        resetTokenUsage();
-      }
-    }
-  }, [isSessionActive, msgs.length, resetTokenUsage]);
-
   // Get all tools functions
   const toolsFunctions = useToolsFunctions();
 
