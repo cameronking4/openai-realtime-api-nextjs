@@ -11,6 +11,8 @@ export interface Tool {
   parameters?: Record<string, any>;
 }
 
+export type Modality = "text" | "text+audio";
+
 /**
  * The return type for the hook, matching Approach A
  * (RefObject<HTMLDivElement | null> for the audioIndicatorRef).
@@ -27,6 +29,8 @@ interface UseWebRTCAudioSessionReturn {
   currentVolume: number;
   conversation: Conversation[];
   sendTextMessage: (text: string) => void;
+  updateModality: (modality: Modality) => void;
+  currentModality: Modality;
 }
 
 /**
@@ -40,6 +44,7 @@ export default function useWebRTCAudioSession(
   // Connection/session states
   const [status, setStatus] = useState("");
   const [isSessionActive, setIsSessionActive] = useState(false);
+  const [currentModality, setCurrentModality] = useState<Modality>("text");
 
   // Audio references for local mic
   // Approach A: explicitly typed as HTMLDivElement | null
@@ -79,40 +84,108 @@ export default function useWebRTCAudioSession(
   }
 
   /**
+   * Update session modality
+   */
+  function updateModality(modality: Modality) {
+    console.log(`Updating modality to: ${modality}`);
+    
+    if (modality === currentModality) {
+      console.log("Modality unchanged, no action needed");
+      return;
+    }
+    
+    if (!dataChannelRef.current || dataChannelRef.current.readyState !== "open") {
+      console.log("Data channel not ready, just updating local state");
+      setCurrentModality(modality);
+      return;
+    }
+
+    // If we're switching to audio mode, we need to ensure microphone access
+    if (modality === "text+audio" && (!audioStreamRef.current || !audioStreamRef.current.getAudioTracks().some(track => track.enabled))) {
+      console.log("Switching to audio mode, enabling audio tracks");
+      
+      // Try to enable existing tracks first
+      if (audioStreamRef.current) {
+        const tracks = audioStreamRef.current.getAudioTracks();
+        if (tracks.length > 0) {
+          tracks.forEach(track => track.enabled = true);
+        }
+      }
+    }
+    
+    // If switching to text mode, disable audio tracks
+    if (modality === "text" && audioStreamRef.current) {
+      console.log("Switching to text mode, disabling audio tracks");
+      audioStreamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = false;
+      });
+    }
+
+    // Send session update with new modalities
+    const sessionUpdate = {
+      type: "session.update",
+      session: {
+        modalities: modality === "text" ? ["text"] : ["text", "audio"],
+        tools: tools || [],
+        input_audio_transcription: modality === "text+audio" ? {
+          model: "whisper-1",
+        } : null,
+      },
+    };
+    
+    try {
+      dataChannelRef.current.send(JSON.stringify(sessionUpdate));
+      console.log("Session update sent for modality change:", sessionUpdate);
+      setCurrentModality(modality);
+    } catch (err) {
+      console.error("Error updating modality:", err);
+      setStatus("Error updating modality. Try again or restart the session.");
+    }
+  }
+
+  /**
    * Configure the data channel on open, sending a session update to the server.
    */
   function configureDataChannel(dataChannel: RTCDataChannel) {
+    console.log(`Configuring data channel for modality: ${currentModality}`);
+    
     // Send session update
     const sessionUpdate = {
       type: "session.update",
       session: {
-        modalities: ["text", "audio"],
+        modalities: currentModality === "text" ? ["text"] : ["text", "audio"],
         tools: tools || [],
-        input_audio_transcription: {
+        input_audio_transcription: currentModality === "text+audio" ? {
           model: "whisper-1",
+        } : null,
+      },
+    };
+    
+    try {
+      dataChannel.send(JSON.stringify(sessionUpdate));
+      console.log("Session update sent:", sessionUpdate);
+      
+      console.log("Setting locale: " + t("language") + " : " + locale);
+
+      // Send language preference message
+      const languageMessage = {
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: t("languagePrompt"),
+            },
+          ],
         },
-      },
-    };
-    dataChannel.send(JSON.stringify(sessionUpdate));
-
-    console.log("Session update sent:", sessionUpdate);
-    console.log("Setting locale: " + t("language") + " : " + locale);
-
-    // Send language preference message
-    const languageMessage = {
-      type: "conversation.item.create",
-      item: {
-        type: "message",
-        role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: t("languagePrompt"),
-          },
-        ],
-      },
-    };
-    dataChannel.send(JSON.stringify(languageMessage));
+      };
+      dataChannel.send(JSON.stringify(languageMessage));
+      console.log("Language preference message sent");
+    } catch (err) {
+      console.error("Error configuring data channel:", err);
+    }
   }
 
   /**
@@ -231,7 +304,7 @@ export default function useWebRTCAudioSession(
         }
 
         /**
-         * Streaming AI transcripts (assistant partial)
+         * Streaming AI transcripts (assistant partial) - for audio responses
          */
         case "response.audio_transcript.delta": {
           const newMessage: Conversation = {
@@ -261,13 +334,67 @@ export default function useWebRTCAudioSession(
         }
 
         /**
-         * Mark the last assistant message as final
+         * Mark the last assistant message as final - for audio responses
          */
         case "response.audio_transcript.done": {
           setConversation((prev) => {
             if (prev.length === 0) return prev;
             const updated = [...prev];
             updated[updated.length - 1].isFinal = true;
+            return updated;
+          });
+          break;
+        }
+
+        /**
+         * Streaming text responses (assistant partial) - for text-only mode
+         */
+        case "response.text.delta": {
+          console.log("Received text delta:", msg.delta);
+          
+          const newMessage: Conversation = {
+            id: uuidv4(), // generate a fresh ID for each assistant partial
+            role: "assistant",
+            text: msg.delta,
+            timestamp: new Date().toISOString(),
+            isFinal: false,
+          };
+
+          setConversation((prev) => {
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg && lastMsg.role === "assistant" && !lastMsg.isFinal) {
+              // Append to existing assistant partial
+              const updated = [...prev];
+              updated[updated.length - 1] = {
+                ...lastMsg,
+                text: lastMsg.text + msg.delta,
+              };
+              return updated;
+            } else {
+              // Start a new assistant partial
+              return [...prev, newMessage];
+            }
+          });
+          break;
+        }
+
+        /**
+         * Mark the last text message as final - for text-only mode
+         */
+        case "response.text.done": {
+          console.log("Text response complete:", msg.text);
+          
+          setConversation((prev) => {
+            if (prev.length === 0) return prev;
+            const updated = [...prev];
+            updated[updated.length - 1].isFinal = true;
+            
+            // If the final text is provided and different from what we've accumulated,
+            // use the final text from the server
+            if (msg.text && updated[updated.length - 1].text !== msg.text) {
+              updated[updated.length - 1].text = msg.text;
+            }
+            
             return updated;
           });
           break;
@@ -302,7 +429,7 @@ export default function useWebRTCAudioSession(
         }
 
         default: {
-          // console.warn("Unhandled message type:", msg.type);
+          console.log("Received unhandled message type:", msg.type, msg);
           break;
         }
       }
@@ -312,26 +439,6 @@ export default function useWebRTCAudioSession(
       return msg;
     } catch (error) {
       console.error("Error handling data channel message:", error);
-    }
-  }
-
-  /**
-   * Fetch ephemeral token from your Next.js endpoint
-   */
-  async function getEphemeralToken() {
-    try {
-      const response = await fetch("/api/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to get ephemeral token: ${response.status}`);
-      }
-      const data = await response.json();
-      return data.client_secret.value;
-    } catch (err) {
-      console.error("getEphemeralToken error:", err);
-      throw err;
     }
   }
 
@@ -385,27 +492,72 @@ export default function useWebRTCAudioSession(
    */
   async function startSession() {
     try {
-      setStatus("Requesting microphone access...");
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioStreamRef.current = stream;
-      setupAudioVisualization(stream);
-
+      // 1. First, get the ephemeral token
       setStatus("Fetching ephemeral token...");
-      const ephemeralToken = await getEphemeralToken();
+      const ephemeralToken = await getEphemeralToken(currentModality);
+      
+      // 2. Get audio stream (required for both modes as the API requires an audio track)
+      setStatus(currentModality === "text+audio" 
+        ? "Requesting microphone access..." 
+        : "Setting up connection...");
+      
+      let stream: MediaStream;
+      
+      try {
+        // Try to get real microphone stream
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        if (currentModality === "text+audio") {
+          // In audio mode, store the stream and set up visualization
+          audioStreamRef.current = stream;
+          setupAudioVisualization(stream);
+        }
+      } catch (err) {
+        console.warn("Could not access microphone, creating silent audio track", err);
+        
+        // Create a silent audio track for text-only mode
+        const audioContext = new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const destination = audioContext.createMediaStreamDestination();
+        oscillator.connect(destination);
+        stream = destination.stream;
+        
+        // In text-only mode, we'll still need a stream but won't use it for input
+        if (currentModality === "text+audio") {
+          setStatus("Error: Microphone access is required for voice mode");
+          throw new Error("Microphone access is required for voice mode");
+        }
+      }
 
+      // 3. Create peer connection
       setStatus("Establishing connection...");
-      const pc = new RTCPeerConnection();
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }]
+      });
       peerConnectionRef.current = pc;
 
-      // Hidden <audio> element for inbound assistant TTS
+      // 4. Set up data channel for messages
+      const dataChannel = pc.createDataChannel("text");
+      dataChannelRef.current = dataChannel;
+
+      dataChannel.onopen = () => {
+        console.log(`Data channel open, modality: ${currentModality}`);
+        configureDataChannel(dataChannel);
+        setIsSessionActive(true);
+        setStatus(`${currentModality} session established successfully!`);
+      };
+      
+      dataChannel.onmessage = handleDataChannelMessage;
+      
+      // 5. Set up audio element for assistant audio responses
       const audioEl = document.createElement("audio");
       audioEl.autoplay = true;
 
-      // Inbound track => assistant's TTS
+      // 6. Handle incoming audio stream from assistant
       pc.ontrack = (event) => {
         audioEl.srcObject = event.streams[0];
 
-        // Optional: measure inbound volume
+        // Setup audio analysis for visualization
         const audioCtx = new (window.AudioContext || window.AudioContext)();
         const src = audioCtx.createMediaStreamSource(event.streams[0]);
         const inboundAnalyzer = audioCtx.createAnalyser();
@@ -419,41 +571,81 @@ export default function useWebRTCAudioSession(
         }, 100);
       };
 
-      // Data channel for transcripts
-      const dataChannel = pc.createDataChannel("response");
-      dataChannelRef.current = dataChannel;
+      // 7. Always add audio track (required by API)
+      // But we'll only use it for input in audio mode
+      stream.getAudioTracks().forEach(track => {
+        // For text-only mode, we'll mute the track
+        if (currentModality === "text") {
+          track.enabled = false;
+        }
+        pc.addTrack(track, stream);
+      });
+      
+      // Store the stream reference regardless of mode
+      audioStreamRef.current = stream;
 
-      dataChannel.onopen = () => {
-        // console.log("Data channel open");
-        configureDataChannel(dataChannel);
-      };
-      dataChannel.onmessage = handleDataChannelMessage;
-
-      // Add local (mic) track
-      pc.addTrack(stream.getTracks()[0]);
-
-      // Create offer & set local description
+      // 8. Create the SDP offer
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-
-      // Send SDP offer to OpenAI Realtime
+      
+      // Ensure we have a complete SDP before sending
+      while (pc.localDescription?.sdp === undefined || pc.localDescription.type !== 'offer') {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      if (!pc.localDescription || !pc.localDescription.sdp) {
+        throw new Error("Failed to create valid SDP offer");
+      }
+      
+      console.log("SDP offer created with audio section");
+      
+      // 9. Send SDP offer to OpenAI Realtime API
       const baseUrl = "https://api.openai.com/v1/realtime";
       const model = "gpt-4o-realtime-preview-2024-12-17";
       const response = await fetch(`${baseUrl}?model=${model}&voice=${voice}`, {
         method: "POST",
-        body: offer.sdp,
+        body: pc.localDescription.sdp,
         headers: {
           Authorization: `Bearer ${ephemeralToken}`,
           "Content-Type": "application/sdp",
         },
       });
 
-      // Set remote description
-      const answerSdp = await response.text();
-      await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+      }
 
-      setIsSessionActive(true);
-      setStatus("Session established successfully!");
+      // 10. Get the SDP answer and set as remote description
+      const answerSdp = await response.text();
+      console.log("Received SDP answer, first 100 chars:", answerSdp.substring(0, 100));
+      
+      // Ensure the SDP answer starts with v=
+      if (!answerSdp.trim().startsWith("v=")) {
+        throw new Error(`Invalid SDP answer received: ${answerSdp.substring(0, 100)}...`);
+      }
+      
+      await pc.setRemoteDescription({ 
+        type: "answer", 
+        sdp: answerSdp 
+      });
+
+      // Handle ICE gathering state changes
+      pc.onicegatheringstatechange = () => {
+        console.log("ICE gathering state:", pc.iceGatheringState);
+      };
+
+      // Handle ICE connection state changes
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE connection state:", pc.iceConnectionState);
+        if (pc.iceConnectionState === "disconnected" || 
+            pc.iceConnectionState === "failed" || 
+            pc.iceConnectionState === "closed") {
+          console.warn("ICE connection issue:", pc.iceConnectionState);
+          setStatus(`Connection issue: ${pc.iceConnectionState}`);
+        }
+      };
+
     } catch (err) {
       console.error("startSession error:", err);
       setStatus(`Error: ${err}`);
@@ -462,39 +654,113 @@ export default function useWebRTCAudioSession(
   }
 
   /**
+   * Fetch ephemeral token from your Next.js endpoint
+   */
+  async function getEphemeralToken(modality: Modality = currentModality) {
+    try {
+      console.log(`Requesting ephemeral token for modality: ${modality}`);
+      const response = await fetch("/api/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ modality }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Failed to get ephemeral token: ${response.status} - ${errorText}`);
+        
+        // Check for network connectivity issues
+        if (errorText.includes("ENOTFOUND") || errorText.includes("getaddrinfo")) {
+          setStatus("Network connectivity issue: Cannot reach OpenAI API. Please check your internet connection.");
+          throw new Error("Network connectivity issue: Cannot reach OpenAI API");
+        }
+        
+        throw new Error(`Failed to get ephemeral token: ${response.status} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.client_secret?.value) {
+        console.error("Received token data:", JSON.stringify(data).substring(0, 200));
+        
+        // Check if there's an error message in the response
+        if (data.error) {
+          setStatus(`Error: ${data.error}`);
+          throw new Error(`Invalid token response: ${data.error}`);
+        }
+        
+        throw new Error("Invalid token response - missing client_secret.value");
+      }
+      
+      console.log(`Successfully obtained ephemeral token for ${modality} session`);
+      return data.client_secret.value;
+    } catch (err: unknown) {
+      console.error("getEphemeralToken error:", err);
+      
+      // Set a user-friendly error message
+      if (err instanceof Error && err.message.includes("Network connectivity")) {
+        setStatus("Network connectivity issue: Cannot reach OpenAI API. Please check your internet connection.");
+      } else {
+        setStatus(`Error getting token: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      
+      throw err;
+    }
+  }
+
+  /**
    * Stop the session & cleanup
    */
   function stopSession() {
+    console.log("Stopping session and cleaning up resources");
+    
     if (dataChannelRef.current) {
       dataChannelRef.current.close();
       dataChannelRef.current = null;
     }
+    
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
+    
     if (audioContextRef.current) {
-      audioContextRef.current.close();
+      try {
+        audioContextRef.current.close();
+      } catch (err) {
+        console.warn("Error closing audio context:", err);
+      }
       audioContextRef.current = null;
     }
+    
     if (audioStreamRef.current) {
-      audioStreamRef.current.getTracks().forEach((track) => track.stop());
+      try {
+        audioStreamRef.current.getTracks().forEach(track => {
+          track.stop();
+        });
+      } catch (err) {
+        console.warn("Error stopping audio tracks:", err);
+      }
       audioStreamRef.current = null;
     }
+    
     if (audioIndicatorRef.current) {
       audioIndicatorRef.current.classList.remove("active");
     }
+    
     if (volumeIntervalRef.current) {
       clearInterval(volumeIntervalRef.current);
       volumeIntervalRef.current = null;
     }
+    
     analyserRef.current = null;
-
     ephemeralUserMessageIdRef.current = null;
 
     setCurrentVolume(0);
     setIsSessionActive(false);
     setStatus("Session stopped");
+    
+    console.log("Session cleanup completed");
   }
 
   /**
@@ -513,7 +779,8 @@ export default function useWebRTCAudioSession(
    */
   function sendTextMessage(text: string) {
     if (!dataChannelRef.current || dataChannelRef.current.readyState !== "open") {
-      console.error("Data channel not ready");
+      console.error("Data channel not ready, cannot send message:", text);
+      setStatus("Cannot send message - connection not ready. Please try again.");
       return;
     }
 
@@ -530,6 +797,8 @@ export default function useWebRTCAudioSession(
     };
     
     setConversation(prev => [...prev, newMessage]);
+
+    console.log(`Sending text message: "${text}" in modality: ${currentModality}`);
 
     // Send message through data channel
     const message = {
@@ -550,8 +819,14 @@ export default function useWebRTCAudioSession(
       type: "response.create",
     };
     
-    dataChannelRef.current.send(JSON.stringify(message));
-    dataChannelRef.current.send(JSON.stringify(response));}
+    try {
+      dataChannelRef.current.send(JSON.stringify(message));
+      dataChannelRef.current.send(JSON.stringify(response));
+    } catch (err) {
+      console.error("Error sending message:", err);
+      setStatus("Error sending message. Please try again.");
+    }
+  }
 
   // Cleanup on unmount
   useEffect(() => {
@@ -571,5 +846,7 @@ export default function useWebRTCAudioSession(
     currentVolume,
     conversation,
     sendTextMessage,
+    updateModality,
+    currentModality,
   };
 }

@@ -4,6 +4,7 @@ import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Send, Mic, MicOff } from "lucide-react"
+import { useModalityContext } from "@/contexts/modality-context"
 
 interface TextInputProps {
   onSubmit: (text: string) => void
@@ -19,6 +20,7 @@ export function TextInput({
   isVoiceActive = false
 }: TextInputProps) {
   const [text, setText] = useState("")
+  const { modality, isAudioEnabled } = useModalityContext();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,14 +93,14 @@ export function TextInput({
           className="flex-1"
         />
         
-        {onVoiceToggle && (
+        {isAudioEnabled && onVoiceToggle && (
           <Button 
             type="button" 
-            variant="outline"
+            variant={isVoiceActive ? "default" : "outline"}
             disabled={disabled}
             onClick={handleVoiceToggle}
             size="icon"
-            className={isVoiceActive ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" : ""}
+            className={isVoiceActive ? "bg-blue-500 hover:bg-blue-600 text-white" : "text-gray-500"}
           >
             {isVoiceActive ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
           </Button>

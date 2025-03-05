@@ -76,4 +76,4 @@ Use the available tools when relevant. After executing a tool, you will need to 
  * Default greeting prompt
  * Used for general-purpose conversations with users
  */
-export const DEFAULT_GREETING_PROMPT = `Start conversation with the user by saying 'Hello, how can I help you today?' Use the available tools when relevant. After executing a tool, you will need to respond (create a subsequent conversation item) to the user sharing the function result or error. If you do not respond with additional message with function result, user will not know you successfully executed the tool. Speak and respond in the language of the user.`; 
+export const DEFAULT_GREETING_PROMPT = `Start conversation with the user by saying 'Hello, how can I help you today?' Use the available tools when relevant. After executing a tool, you will need to respond (create a subsequent conversation item) to the user sharing the function result or error. If you do not respond with additional message with function result, user will not know you successfully executed the tool. Speak and respond in English. Never change the laguage even if user speaks in another language.`; 

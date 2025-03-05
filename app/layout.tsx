@@ -11,6 +11,7 @@ import { Banner } from "@/components/banner";
 import { Footer } from "@/components/footer";
 import { TokenProvider } from "../contexts/token-context";
 import { VoiceProvider } from "../contexts/voice-context";
+import { ModalityProvider } from "../contexts/modality-context"
 
 const poppins = Poppins({
   weight: ['400', '500', '600', '700'],
@@ -50,12 +51,14 @@ export default function RootLayout({
           <TranslationsProvider>
             <VoiceProvider>
               <TokenProvider>
-                <div className="relative flex min-h-dvh flex-col bg-background items-center">
-                  <Banner />
-                  {children}
-                  <Footer />
-                </div>
-                <Toaster />
+                <ModalityProvider>
+                  <div className="relative flex min-h-dvh flex-col bg-background items-center">
+                    <Banner />
+                    {children}
+                    <Footer />
+                  </div>
+                  <Toaster />
+                </ModalityProvider>
               </TokenProvider>
             </VoiceProvider>
           </TranslationsProvider>
