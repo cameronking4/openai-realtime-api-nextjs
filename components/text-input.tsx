@@ -21,6 +21,7 @@ export function TextInput({
 }: TextInputProps) {
   const [text, setText] = useState("")
   const { modality, isAudioEnabled } = useModalityContext();
+  const [isMicMuted, setIsMicMuted] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,14 +31,52 @@ export function TextInput({
     }
   }
 
-  const handleVoiceToggle = () => {
-    if (onVoiceToggle) {
+  const handleMicToggle = () => {
+    // When in text+audio mode, toggle mic mute state
+    if (isAudioEnabled && isVoiceActive) {
+      setIsMicMuted(!isMicMuted);
+      
+      // Get all audio tracks and mute/unmute them
+      const audioTracks = navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then(stream => {
+          stream.getAudioTracks().forEach(track => {
+            track.enabled = !isMicMuted;
+          });
+        })
+        .catch(err => console.error("Error accessing microphone:", err));
+    } 
+    // When not in text+audio mode or session not active, use the original toggle behavior
+    else if (onVoiceToggle) {
       onVoiceToggle(!isVoiceActive);
     }
   };
 
   const handleQuickResponse = (response: string) => {
     onSubmit(response);
+  };
+
+  // Get button appearance based on state
+  const getMicButtonClass = () => {
+    if (!isAudioEnabled || !isVoiceActive) {
+      return "text-gray-500"; // Default state when not in audio mode
+    }
+    
+    return isMicMuted
+      ? "bg-red-500 hover:bg-red-600 text-white" // Muted state
+      : "bg-blue-500 hover:bg-blue-600 text-white"; // Unmuted state
+  };
+  
+  const getMicButtonTitle = () => {
+    if (!isAudioEnabled) {
+      return "Voice mode disabled";
+    }
+    
+    if (!isVoiceActive) {
+      return "Enable voice mode";
+    }
+    
+    return isMicMuted ? "Unmute microphone" : "Mute microphone";
   };
 
   return (
@@ -98,11 +137,15 @@ export function TextInput({
             type="button" 
             variant={isVoiceActive ? "default" : "outline"}
             disabled={disabled}
-            onClick={handleVoiceToggle}
+            onClick={handleMicToggle}
             size="icon"
-            className={isVoiceActive ? "bg-blue-500 hover:bg-blue-600 text-white" : "text-gray-500"}
+            className={getMicButtonClass()}
+            title={getMicButtonTitle()}
           >
-            {isVoiceActive ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+            {isVoiceActive ? 
+              (isMicMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />) 
+              : <MicOff className="h-4 w-4" />
+            }
           </Button>
         )}
         

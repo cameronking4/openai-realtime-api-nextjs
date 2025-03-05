@@ -204,27 +204,27 @@ const App: React.FC = () => {
                   <TakeAMomentButton onPause={handlePause} onResume={handleResume} />
                 </div>
                 <div className="w-1/3 flex justify-center">
-                  {isAudioEnabled && (
-                    <RealtimeBlock 
-                      voice={voice}
-                      isSessionActive={isSessionActive && !isPaused}
-                      handleStartStopClick={handleStartStopClick}
-                      msgs={msgs}
-                      currentVolume={currentVolume}
-                    />
-                  )}
+                  <RealtimeBlock 
+                    voice={voice}
+                    isSessionActive={isSessionActive && !isPaused}
+                    handleStartStopClick={handleStartStopClick}
+                    msgs={msgs}
+                    currentVolume={currentVolume}
+                  />
                 </div>
                 <div className="w-1/3 flex justify-end space-x-2">
-                  <div className="flex items-center space-x-2 bg-white dark:bg-slate-800 px-3 py-1 rounded-lg shadow-sm">
-                    <Switch
-                      id="modality-toggle-active"
-                      checked={modality === "text+audio"}
-                      onCheckedChange={handleModalityToggle}
-                    />
-                    <Label htmlFor="modality-toggle-active" className="text-sm">
-                      {modality === "text+audio" ? "Voice enabled" : "Text only"}
-                    </Label>
-                  </div>
+                  {sessionState !== "active" && sessionState !== "post" && (
+                    <div className="flex items-center space-x-2 bg-white dark:bg-slate-800 px-3 py-1 rounded-lg shadow-sm">
+                      <Switch
+                        id="modality-toggle-active"
+                        checked={modality === "text+audio"}
+                        onCheckedChange={handleModalityToggle}
+                      />
+                      <Label htmlFor="modality-toggle-active" className="text-sm">
+                        {modality === "text+audio" ? "Voice enabled" : "Text only"}
+                      </Label>
+                    </div>
+                  )}
                   <Button 
                     variant="outline" 
                     onClick={handleEndSession}
