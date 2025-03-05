@@ -22,6 +22,10 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import NetworkErrorAlert from "@/components/network-error-alert"
+import TranscriptModal from "@/components/transcript-modal"
+import AssessmentModal from "@/components/assessment-modal"
+import AssessmentVisualization from "@/components/assessment-visualization"
+import { generateTranscript, saveTranscript, Transcript } from "@/lib/transcript-service"
 
 // Session state type
 type SessionState = "pre" | "active" | "post";
@@ -60,6 +64,15 @@ const App: React.FC = () => {
   // State to track network connectivity issues
   const [hasNetworkError, setHasNetworkError] = useState(false);
   const [networkErrorMessage, setNetworkErrorMessage] = useState("");
+
+  // State for transcript and modal
+  const [transcript, setTranscript] = useState<Transcript | null>(null);
+  const [isTranscriptModalOpen, setIsTranscriptModalOpen] = useState(false);
+  const [assessment, setAssessment] = useState<string | null>(null);
+  const [isAssessmentModalOpen, setIsAssessmentModalOpen] = useState(false);
+  const [isGeneratingAssessment, setIsGeneratingAssessment] = useState(false);
+  const [testData, setTestData] = useState<{ prompt: string; rawResponse: string } | null>(null);
+  const [assessmentSummary, setAssessmentSummary] = useState<string | null>(null);
 
   // Update token context with messages
   useEffect(() => {
@@ -126,6 +139,12 @@ const App: React.FC = () => {
     if (isSessionActive) {
       handleStartStopClick();
     }
+    
+    // Generate and save transcript
+    const sessionId = `session_${Date.now()}`;
+    const newTranscript = generateTranscript(conversation, sessionId);
+    saveTranscript(newTranscript);
+    setTranscript(newTranscript);
   };
 
   // Handle voice toggle
@@ -149,6 +168,77 @@ const App: React.FC = () => {
 
   const handleResume = () => {
     setIsPaused(false);
+  };
+
+  // Generate assessment from transcript
+  const handleGenerateAssessment = async () => {
+    if (!transcript) {
+      console.error("No transcript available to generate assessment");
+      return;
+    }
+
+    setIsGeneratingAssessment(true);
+    setAssessment(null);
+    setTestData(null);
+    setAssessmentSummary(null);
+
+    try {
+      const response = await fetch('/api/assessment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ transcript: transcript.content }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`API error: ${errorData.error || response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log("Received API response:", JSON.stringify({
+        hasAssessment: !!data.assessment,
+        hasTestData: !!data.testData,
+        assessmentLength: data.assessment ? data.assessment.length : 0,
+        testDataKeys: data.testData ? Object.keys(data.testData) : []
+      }));
+      
+      setAssessment(data.assessment);
+      setTestData(data.testData);
+      
+      // Extract a summary from the assessment
+      try {
+        // Try to extract JSON from the text response
+        const jsonRegex = /{[\s\S]*}/;
+        const match = data.assessment.match(jsonRegex);
+        
+        let jsonString = match ? match[0] : data.assessment;
+        
+        // Clean up the string
+        jsonString = jsonString.replace(/\\"/g, '"').replace(/\\n/g, '');
+        
+        // Try to parse the JSON
+        const assessmentObj = JSON.parse(jsonString);
+        
+        if (assessmentObj && assessmentObj.summaries && assessmentObj.summaries.clinical) {
+          setAssessmentSummary(assessmentObj.summaries.clinical);
+        } else {
+          // If we can't find the clinical summary, use the first 150 characters
+          setAssessmentSummary(data.assessment.substring(0, 150) + "...");
+        }
+      } catch (e) {
+        console.error("Failed to parse assessment for summary:", e);
+        // If it's not valid JSON, just use the first 150 characters
+        setAssessmentSummary(data.assessment.substring(0, 150) + "...");
+      }
+    } catch (error) {
+      console.error('Failed to generate assessment:', error);
+      setAssessment(`Error generating assessment: ${error instanceof Error ? error.message : String(error)}`);
+      setAssessmentSummary("Error generating assessment");
+    } finally {
+      setIsGeneratingAssessment(false);
+    }
   };
 
   // Render different content based on session state
@@ -261,19 +351,41 @@ const App: React.FC = () => {
               Assessment Complete
             </h2>
             <p className="text-slate-600 dark:text-slate-300 max-w-md">
-              Thank you for completing the assessment. Your responses will help us provide personalized support.
+              Thank you for completing your assessment. Your responses have been recorded.
             </p>
-            <div className="flex gap-4 mt-4">
+            
+            {/* Assessment Visualization */}
+            {(isGeneratingAssessment || assessment) && (
+              <div className="w-full max-w-4xl mt-4">
+                <AssessmentVisualization 
+                  assessment={assessment}
+                  isLoading={isGeneratingAssessment}
+                  onViewFullAssessment={() => setIsAssessmentModalOpen(true)}
+                />
+              </div>
+            )}
+            
+            <div className="flex space-x-4 mt-4">
               <Button 
-                variant="outline" 
-                onClick={() => setSessionState("pre")}
+                variant="outline"
+                onClick={() => setIsTranscriptModalOpen(true)}
               >
-                Start New Assessment
+                View Transcript
               </Button>
               <Button 
-                onClick={() => setSessionState("active")}
+                variant={assessment ? "outline" : "default"}
+                onClick={handleGenerateAssessment}
+                disabled={!transcript || isGeneratingAssessment}
               >
-                Review Conversation
+                {assessment ? "Regenerate Assessment" : "Generate Assessment"}
+              </Button>
+              <Button 
+                onClick={() => {
+                  setSessionState("pre");
+                  resetTokenUsage();
+                }}
+              >
+                Start New Session
               </Button>
             </div>
           </motion.div>
@@ -301,6 +413,22 @@ const App: React.FC = () => {
           {renderSessionContent()}
         </motion.div>
       </main>
+      
+      {/* Transcript Modal */}
+      <TranscriptModal 
+        transcript={transcript}
+        isOpen={isTranscriptModalOpen}
+        onClose={() => setIsTranscriptModalOpen(false)}
+      />
+      
+      {/* Assessment Modal */}
+      <AssessmentModal 
+        assessment={assessment}
+        isOpen={isAssessmentModalOpen}
+        onClose={() => setIsAssessmentModalOpen(false)}
+        isLoading={isGeneratingAssessment}
+        testData={testData}
+      />
     </>
   )
 }

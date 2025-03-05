@@ -1,0 +1,12 @@
+{
+  "id": "transcript_1741210107856",
+  "sessionId": "session_1741210107855",
+  "createdAt": "2025-03-05T21:28:27.856Z",
+  "content": "[4:28 PM] Patient: Can you explain more?\n\n[4:28 PM] Eve: Hello, and welcome. I'm Eve, your AI assistant here to support you through a psycho-oncology assessment. This process is important as it helps us understand your mental and emotional wellbeing during your treatment journey. Let's work together to ensure your holistic healing. How have you been feeling about your treatment lately?\n\n[4:28 PM] Patient: Not sure\n\n[4:28 PM] Eve: It's okay to feel uncertain. Everyone's experience is unique. Can you share a little about your mood over the past week? Any changes or patterns you've noticed?\n\n",
+  "metadata": {
+    "messageCount": 4,
+    "userMessageCount": 2,
+    "assistantMessageCount": 2,
+    "duration": 2
+  }
+}

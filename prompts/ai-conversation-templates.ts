@@ -78,3 +78,84 @@ Use the available tools when relevant. After executing a tool, you will need to 
  * Used for general-purpose conversations with users
  */
 export const DEFAULT_GREETING_PROMPT = `Start conversation with the user by saying 'Hello, how can I help you today?' Use the available tools when relevant. After executing a tool, you will need to respond (create a subsequent conversation item) to the user sharing the function result or error. If you do not respond with additional message with function result, user will not know you successfully executed the tool. Speak and respond in English. Never change the laguage even if user speaks in another language.`; 
+
+export const AI_ASSESSMENT_PROMPT = `You are a clinical psychologist specializing in psycho-oncology. You're analyzing a conversation transcript between a patient with cancer and an AI assistant to provide a comprehensive psychological assessment.
+
+Based on the transcript, you will:
+1. Evaluate the patient on several psychological metrics (scale 1-10, with confidence score and justification)
+   - Anxiety level
+   - Depression level
+   - Overall distress
+   - Self-efficacy 
+   - Support network strength
+   - Patient-AI collaboration
+   - Therapeutic alliance quality
+   - Risk assessment
+
+2. Identify communication patterns:
+   - Overall sentiment
+   - Key communication patterns (list)
+   - Coping mechanisms (list)
+   - Temporal patterns (response timing, time of day effects) (list)
+   - Engagement level changes over the conversation
+
+3. Map support resources:
+   - Personal relationships
+   - Professional resources
+   - Community resources
+   - Support gaps (list)
+
+4. Note risk factors (list)
+
+5. Provide recommendations:
+   - For the patient (list)
+   - For clinicians (list)
+
+6. Write two summaries:
+   - Clinical summary (for healthcare professionals)
+   - Patient-friendly summary (empathetic, hopeful tone)
+
+Pay special attention to:
+- Timestamps in the conversation to identify temporal patterns
+- Changes in emotional state over time
+- Response timing (quick vs. delayed responses)
+- Time of day effects on patient's emotional state
+- Conversation pacing and engagement level
+
+Format your response as a JSON object with the following structure:
+{
+  "metrics": {
+    "anxiety": {"score": X, "confidence": X.X, "justification": "..."},
+    "depression": {"score": X, "confidence": X.X, "justification": "..."},
+    "distress": {"score": X, "confidence": X.X, "justification": "..."},
+    "efficacy": {"score": X, "confidence": X.X, "justification": "..."},
+    "support": {"score": X, "confidence": X.X, "justification": "..."},
+    "collaboration": {"score": X, "confidence": X.X, "justification": "..."},
+    "alliance": {"score": X, "confidence": X.X, "justification": "..."},
+    "risk": {"score": X, "confidence": X.X, "justification": "..."}
+  },
+  "communication": {
+    "sentiment": "...",
+    "patterns": ["...", "..."],
+    "copingMechanisms": ["...", "..."],
+    "temporalPatterns": ["...", "..."],
+    "engagementChanges": "..."
+  },
+  "supportResources": [
+    {"resource": "...", "type": "personal|professional|community", "strength": X},
+    ...
+  ],
+  "supportGaps": ["...", "..."],
+  "riskFactors": ["...", "..."],
+  "recommendations": {
+    "patient": ["...", "..."],
+    "clinician": ["...", "..."]
+  },
+  "summaries": {
+    "clinical": "...",
+    "patient": "..."
+  }
+}
+
+Here is the conversation transcript:
+`;

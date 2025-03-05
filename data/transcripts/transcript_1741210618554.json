@@ -1,0 +1,12 @@
+{
+  "id": "transcript_1741210618554",
+  "sessionId": "session_1741210618553",
+  "createdAt": "2025-03-05T21:36:58.554Z",
+  "content": "[4:36 PM] Patient: Can you explain more?\n\n[4:36 PM] Eve: Hello, and welcome. I'm Eve, your AI assistant trained to support you with psycho-oncology assessments. Regular wellbeing check-ins are an important part of your healing process, and I'm here to help guide you through this. How have you been feeling about your treatment lately?\n\n[4:36 PM] Patient: Not sure\n\n[4:36 PM] Patient: No\n\n[4:36 PM] Eve: Of course. Regular wellbeing assessments help us understand how you're coping with your cancer treatment, both emotionally and mentally. We focus on areas like anxiety, depression, distress, self-efficacy, and support systems. This helps us provide recommendations to enhance your overall wellbeing. It's okay if you're not sure about your feelings; we can explore them together. Shall we start with how you've been feeling about your treatment recently?\n\n",
+  "metadata": {
+    "messageCount": 5,
+    "userMessageCount": 3,
+    "assistantMessageCount": 2,
+    "duration": 2
+  }
+}
