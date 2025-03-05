@@ -86,7 +86,7 @@ export default function useWebRTCAudioSession(
   /**
    * Update session modality
    */
-  function updateModality(modality: Modality) {
+  async function updateModality(modality: Modality) {
     console.log(`Updating modality to: ${modality}`);
     
     if (modality === currentModality) {
@@ -101,19 +101,80 @@ export default function useWebRTCAudioSession(
     }
 
     // If we're switching to audio mode, we need to ensure microphone access
-    if (modality === "text+audio" && (!audioStreamRef.current || !audioStreamRef.current.getAudioTracks().some(track => track.enabled))) {
-      console.log("Switching to audio mode, enabling audio tracks");
+    if (modality === "text+audio") {
+      console.log("Switching to audio mode, requesting microphone access");
+      setStatus("Requesting microphone access...");
       
-      // Try to enable existing tracks first
-      if (audioStreamRef.current) {
-        const tracks = audioStreamRef.current.getAudioTracks();
-        if (tracks.length > 0) {
-          tracks.forEach(track => track.enabled = true);
+      try {
+        // Force a new microphone request by checking permission status first
+        const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        console.log("Current microphone permission status:", permissionStatus.state);
+        
+        // Always request a new microphone stream when switching to audio mode
+        console.log("Requesting new microphone stream");
+        const micStream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            // Force a new device selection by using specific constraints
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          } 
+        });
+        
+        console.log("Microphone access granted, tracks:", micStream.getAudioTracks().map(t => ({ 
+          id: t.id, 
+          label: t.label, 
+          enabled: t.enabled, 
+          muted: t.muted 
+        })));
+        
+        // Replace the existing audio track in the peer connection
+        if (peerConnectionRef.current) {
+          const senders = peerConnectionRef.current.getSenders();
+          console.log("Current peer connection senders:", senders.length);
+          
+          const audioSender = senders.find(sender => 
+            sender.track && sender.track.kind === 'audio'
+          );
+          
+          if (audioSender) {
+            console.log("Found audio sender, current track:", 
+              audioSender.track ? { id: audioSender.track.id, label: audioSender.track.label } : "null");
+            
+            // Get the first audio track from the new stream
+            const newTrack = micStream.getAudioTracks()[0];
+            if (newTrack) {
+              await audioSender.replaceTrack(newTrack);
+              console.log("Replaced audio track with real microphone track:", 
+                { id: newTrack.id, label: newTrack.label });
+              
+              // Store the new stream and set up visualization
+              if (audioStreamRef.current) {
+                // Stop old tracks first
+                audioStreamRef.current.getTracks().forEach(track => track.stop());
+              }
+              
+              audioStreamRef.current = micStream;
+              setupAudioVisualization(micStream);
+            } else {
+              console.error("No audio tracks found in the new microphone stream");
+            }
+          } else {
+            console.error("No audio sender found in peer connection");
+          }
+        } else {
+          console.error("No peer connection available");
         }
+        
+        setStatus("Microphone activated for voice mode");
+      } catch (err) {
+        console.error("Error accessing microphone for audio mode:", err);
+        setStatus("Error: Could not access microphone for voice mode");
+        return; // Don't proceed with modality change if we can't get mic access
       }
     }
     
-    // If switching to text mode, disable audio tracks
+    // If switching to text mode, disable audio tracks but don't remove them
     if (modality === "text" && audioStreamRef.current) {
       console.log("Switching to text mode, disabling audio tracks");
       audioStreamRef.current.getAudioTracks().forEach(track => {
@@ -492,38 +553,34 @@ export default function useWebRTCAudioSession(
    */
   async function startSession() {
     try {
-      // 1. First, get the ephemeral token
-      setStatus("Fetching ephemeral token...");
-      const ephemeralToken = await getEphemeralToken(currentModality);
+      setStatus("Setting up session...");
       
-      // 2. Get audio stream (required for both modes as the API requires an audio track)
+      // 1. Get ephemeral token
+      const ephemeralToken = await getEphemeralToken();
+      
+      // 2. Set up audio stream
       setStatus(currentModality === "text+audio" 
         ? "Requesting microphone access..." 
         : "Setting up connection...");
       
       let stream: MediaStream;
       
-      try {
-        // Try to get real microphone stream
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        if (currentModality === "text+audio") {
-          // In audio mode, store the stream and set up visualization
-          audioStreamRef.current = stream;
-          setupAudioVisualization(stream);
-        }
-      } catch (err) {
-        console.warn("Could not access microphone, creating silent audio track", err);
-        
-        // Create a silent audio track for text-only mode
+      // For text-only mode, create a silent audio track directly without requesting microphone access
+      if (currentModality === "text") {
+        console.log("Text-only mode: Creating silent audio track without requesting microphone");
         const audioContext = new AudioContext();
         const oscillator = audioContext.createOscillator();
         const destination = audioContext.createMediaStreamDestination();
         oscillator.connect(destination);
         stream = destination.stream;
-        
-        // In text-only mode, we'll still need a stream but won't use it for input
-        if (currentModality === "text+audio") {
+      } else {
+        // For text+audio mode, request microphone access
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioStreamRef.current = stream;
+          setupAudioVisualization(stream);
+        } catch (err) {
+          console.error("Could not access microphone for audio mode:", err);
           setStatus("Error: Microphone access is required for voice mode");
           throw new Error("Microphone access is required for voice mode");
         }
