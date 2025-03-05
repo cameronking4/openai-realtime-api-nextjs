@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import useWebRTCAudioSession from "@/hooks/use-webrtc";
-import { Button } from "@/components/ui/button";
-import { Minimize2, Maximize2 } from "lucide-react";
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { MicIcon, PhoneOff } from 'lucide-react';
 import { useModalityContext } from "@/contexts/modality-context";
  
 const RealtimeBlock: React.FC<{
@@ -14,173 +13,102 @@ const RealtimeBlock: React.FC<{
   msgs: any[];
   currentVolume: number;
 }> = ({ voice, isSessionActive, handleStartStopClick, msgs, currentVolume }) => {
-  const silenceTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [bars, setBars] = useState(Array(50).fill(5));
   const { isAudioEnabled } = useModalityContext();
  
-  const [mode, setMode] = useState<"idle" | "thinking" | "responding" | "volume" | "">(
-    "idle"
-  );
-  const [volumeLevels, setVolumeLevels] = useState([0, 0, 0, 0]);
-  const [currentEventIndex, setCurrentEventIndex] = useState(0);
- 
   useEffect(() => {
-    if (!isSessionActive || !isAudioEnabled) return;
- 
-    if (currentVolume > 0.02) {
-      if (silenceTimeoutRef.current) {
-        clearTimeout(silenceTimeoutRef.current);
-      }
-      setMode("volume");
-      setVolumeLevels((prev) =>
-        prev.map(() =>
-          Math.min(100, Math.max(10, currentVolume * Math.random() * 5))
-        )
-      );
-    } else if (mode === "volume") {
-      silenceTimeoutRef.current = setTimeout(() => {
-        setMode("idle");
-      }, 500);
+    if (isSessionActive && isAudioEnabled) {
+      updateBars(currentVolume);
+    } else {
+      resetBars();
     }
+  }, [currentVolume, isSessionActive, isAudioEnabled]);
  
-    return () => {
-      if (silenceTimeoutRef.current) {
-        clearTimeout(silenceTimeoutRef.current);
-      }
-    };
-  }, [currentVolume, isSessionActive, mode, isAudioEnabled]);
- 
-  useEffect(() => {
-    if (!isSessionActive || !isAudioEnabled) {
-      setMode("idle");
-      return;
+  const updateBars = (volume: number) => {
+    if (volume > 0.002) {
+      setBars(bars.map(() => Math.random() * volume * 500));
+    } else {
+      setBars(Array(50).fill(5));
     }
+  };
  
-    const newMsgs = msgs.slice(currentEventIndex);
-    setCurrentEventIndex(msgs.length);
+  const resetBars = () => {
+    setBars(Array(50).fill(5));
+  };
  
-    if (newMsgs.some((msg) => msg.type === "error")) {
-      setMode("idle");
-    } else if (
-      newMsgs.some((msg) => msg.type === "response.output_item.added")
-    ) {
-      setMode("responding");
-    } else if (
-      newMsgs.some((msg) => msg.type === "response.created")
-    ) {
-      setMode("thinking");
-    }
-  }, [msgs, currentEventIndex, isSessionActive, isAudioEnabled]);
- 
-  const toggleMinimize = () => {
-    setIsMinimized(!isMinimized);
+  const micPulseAnimation = {
+    scale: [1, 1.2, 1],
+    opacity: [1, 0.8, 1],
+    transition: { duration: 0.8, repeat: Infinity }
   };
  
   // If audio is not enabled, don't show this component
   if (!isAudioEnabled) return null;
-
+ 
   return (
-    <div className="relative">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-0 right-0 z-10"
-        onClick={toggleMinimize}
-      >
-        {isMinimized ? (
-          <Maximize2 className="h-4 w-4" />
-        ) : (
-          <Minimize2 className="h-4 w-4" />
-        )}
-      </Button>
- 
-      {!isMinimized && (
-        <div className="flex flex-col items-center p-2 rounded-lg bg-white dark:bg-gray-800 shadow-md">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            {mode === "idle" && "Listening..."}
-            {mode === "thinking" && "Thinking..."}
-            {mode === "responding" && "Responding..."}
-            {mode === "volume" && "Hearing you..."}
-          </div>
- 
-          <div
-            className={`flex items-end justify-center h-16 w-24 gap-1 ${
-              isSessionActive ? "" : "opacity-50"
-            }`}
+    <div className="flex items-center justify-center gap-4 p-4 rounded">
+      <AnimatePresence>
+        {isSessionActive && (
+          <motion.div
+            className="flex items-center justify-center"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.5 }}
           >
-            {mode === "volume" ? (
-              // Volume visualization
-              volumeLevels.map((h, i) => (
-                <motion.div
-                  key={i}
-                  className="w-1 bg-blue-500"
-                  initial={{ height: 4 }}
-                  animate={{ height: h }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 200,
-                    damping: 5,
-                  }}
-                />
-              ))
-            ) : mode === "thinking" ? (
-              // Thinking animation (three dots)
-              Array(3)
-                .fill(0)
-                .map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="w-2 h-2 rounded-full bg-gray-400"
-                    animate={{
-                      y: [0, -10, 0],
-                    }}
-                    transition={{
-                      duration: 1,
-                      repeat: Infinity,
-                      delay: i * 0.2,
-                    }}
+            <svg width="200px" height="100px" viewBox="0 0 1000 200" preserveAspectRatio="xMidYMid meet">
+              {bars.map((height, index) => (
+                <React.Fragment key={index}>
+                  <rect
+                    x={500 + index * 20 - 490}
+                    y={100 - height / 2}
+                    width="10"
+                    height={height}
+                    className={`fill-current ${isSessionActive ? 'text-black dark:text-white opacity-70' : 'text-gray-400 opacity-30'}`}
                   />
-                ))
-            ) : mode === "responding" ? (
-              // Responding animation (wave)
-              Array(4)
-                .fill(0)
-                .map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="w-1 bg-green-500"
-                    animate={{
-                      height: [5, 15, 5],
-                    }}
-                    transition={{
-                      duration: 1,
-                      repeat: Infinity,
-                      delay: i * 0.1,
-                    }}
+                  <rect
+                    x={500 - index * 20 - 10}
+                    y={100 - height / 2}
+                    width="10"
+                    height={height}
+                    className={`fill-current ${isSessionActive ? 'text-black dark:text-white opacity-70' : 'text-gray-400 opacity-30'}`}
                   />
-                ))
+                </React.Fragment>
+              ))}
+            </svg>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      <motion.div
+        animate={isSessionActive && currentVolume === 0 ? micPulseAnimation : {}}
+      >
+        <Button onClick={handleStartStopClick} className="flex items-center justify-center w-12 h-12 rounded-full shadow-lg">
+          <AnimatePresence>
+            {isSessionActive ? (
+              <motion.div
+                key="phone-off"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.3 }}
+              >
+                <PhoneOff size={24} />
+              </motion.div>
             ) : (
-              // Idle animation (low waves)
-              Array(4)
-                .fill(0)
-                .map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="w-1 bg-gray-300"
-                    animate={{
-                      height: [3, 6, 3],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      delay: i * 0.2,
-                    }}
-                  />
-                ))
+              <motion.div
+                key="mic-icon"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.3 }}
+              >
+                <MicIcon size={24} />
+              </motion.div>
             )}
-          </div>
-        </div>
-      )}
+          </AnimatePresence>
+        </Button>
+      </motion.div>
     </div>
   );
 };

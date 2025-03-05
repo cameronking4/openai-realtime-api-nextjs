@@ -10,7 +10,7 @@ interface VoiceContextType {
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
-  const [voice, setVoice] = useState("ash");
+  const [voice, setVoice] = useState("sage");
 
   return (
     <VoiceContext.Provider value={{ voice, setVoice }}>

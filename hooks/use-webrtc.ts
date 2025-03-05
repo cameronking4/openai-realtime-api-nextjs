@@ -76,6 +76,9 @@ export default function useWebRTCAudioSession(
    */
   const ephemeralUserMessageIdRef = useRef<string | null>(null);
 
+  // Add a ref for the audio element
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+
   /**
    * Register a function (tool) so the AI can call it.
    */
@@ -166,6 +169,44 @@ export default function useWebRTCAudioSession(
           console.error("No peer connection available");
         }
         
+        // Make sure audio output is enabled for text+audio mode
+        if (peerConnectionRef.current) {
+          // Check if we need to recreate the audio element
+          if (!audioElementRef.current) {
+            console.log("Creating new audio element for output");
+            const audioEl = document.createElement("audio");
+            audioEl.autoplay = true;
+            audioElementRef.current = audioEl;
+            
+            // Re-attach ontrack handler to ensure audio output works
+            peerConnectionRef.current.ontrack = (event) => {
+              console.log("Received track from peer:", event.track.kind);
+              audioEl.srcObject = event.streams[0];
+              
+              // Setup audio analysis for visualization
+              const audioCtx = new (window.AudioContext || window.AudioContext)();
+              const src = audioCtx.createMediaStreamSource(event.streams[0]);
+              const inboundAnalyzer = audioCtx.createAnalyser();
+              inboundAnalyzer.fftSize = 256;
+              src.connect(inboundAnalyzer);
+              analyserRef.current = inboundAnalyzer;
+              
+              // Start volume monitoring
+              if (volumeIntervalRef.current) {
+                clearInterval(volumeIntervalRef.current);
+              }
+              volumeIntervalRef.current = window.setInterval(() => {
+                setCurrentVolume(getVolume());
+              }, 100);
+            };
+          } else {
+            console.log("Audio element already exists, ensuring it's active");
+            // Make sure the audio element is not muted
+            audioElementRef.current.muted = false;
+            audioElementRef.current.volume = 1.0;
+          }
+        }
+        
         setStatus("Microphone activated for voice mode");
       } catch (err) {
         console.error("Error accessing microphone for audio mode:", err);
@@ -174,12 +215,69 @@ export default function useWebRTCAudioSession(
       }
     }
     
-    // If switching to text mode, disable audio tracks but don't remove them
-    if (modality === "text" && audioStreamRef.current) {
-      console.log("Switching to text mode, disabling audio tracks");
-      audioStreamRef.current.getAudioTracks().forEach(track => {
-        track.enabled = false;
-      });
+    // If switching to text mode, replace real microphone with silent audio track
+    if (modality === "text") {
+      console.log("Switching to text mode, replacing microphone with silent audio track");
+      
+      try {
+        // Create a silent audio track
+        const audioContext = new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const destination = audioContext.createMediaStreamDestination();
+        oscillator.connect(destination);
+        const silentStream = destination.stream;
+        
+        // Replace the real microphone track with the silent track
+        if (peerConnectionRef.current) {
+          const senders = peerConnectionRef.current.getSenders();
+          const audioSender = senders.find(sender => 
+            sender.track && sender.track.kind === 'audio'
+          );
+          
+          if (audioSender) {
+            // Get the silent audio track
+            const silentTrack = silentStream.getAudioTracks()[0];
+            if (silentTrack) {
+              // Disable the track to ensure it's silent
+              silentTrack.enabled = false;
+              
+              await audioSender.replaceTrack(silentTrack);
+              console.log("Replaced real microphone with silent audio track");
+              
+              // Stop the old microphone tracks to ensure privacy
+              if (audioStreamRef.current) {
+                console.log("Stopping real microphone tracks for privacy");
+                audioStreamRef.current.getTracks().forEach(track => {
+                  track.stop();
+                  console.log(`Stopped track: ${track.label}`);
+                });
+              }
+              
+              // Store the new silent stream
+              audioStreamRef.current = silentStream;
+            }
+          }
+        }
+        
+        // Make sure audio output still works in text-only mode
+        if (audioElementRef.current) {
+          console.log("Ensuring audio element is active for text-only mode");
+          audioElementRef.current.muted = false;
+          audioElementRef.current.volume = 1.0;
+        }
+        
+        setStatus("Switched to text-only mode, microphone disabled");
+      } catch (err) {
+        console.error("Error creating silent audio track:", err);
+        
+        // If we can't create a silent track, at least disable the existing tracks
+        if (audioStreamRef.current) {
+          audioStreamRef.current.getAudioTracks().forEach(track => {
+            track.enabled = false;
+            console.log(`Disabled track: ${track.label}`);
+          });
+        }
+      }
     }
 
     // Send session update with new modalities
@@ -549,6 +647,44 @@ export default function useWebRTCAudioSession(
   }
 
   /**
+   * Send an initial message to prompt the AI to start the conversation
+   */
+  function sendInitialPrompt() {
+    console.log("Sending initial prompt to start conversation");
+    
+    // Create a system message to prompt the AI to start the conversation
+    const initialPrompt = {
+      type: "conversation.item.create",
+      item: {
+        type: "message",
+        role: "system",
+        content: [
+          {
+            type: "input_text",
+            text: "Please start the conversation by greeting the user and introducing yourself.",
+          },
+        ],
+      },
+    };
+
+    const response = {
+      type: "response.create",
+    };
+    
+    try {
+      if (dataChannelRef.current && dataChannelRef.current.readyState === "open") {
+        dataChannelRef.current.send(JSON.stringify(initialPrompt));
+        dataChannelRef.current.send(JSON.stringify(response));
+        console.log("Initial prompt sent successfully");
+      } else {
+        console.error("Data channel not ready, cannot send initial prompt");
+      }
+    } catch (err) {
+      console.error("Error sending initial prompt:", err);
+    }
+  }
+
+  /**
    * Start a new session:
    */
   async function startSession() {
@@ -602,17 +738,39 @@ export default function useWebRTCAudioSession(
         configureDataChannel(dataChannel);
         setIsSessionActive(true);
         setStatus(`${currentModality} session established successfully!`);
+        
+        // Send initial prompt to start the conversation
+        setTimeout(() => {
+          sendInitialPrompt();
+        }, 1000); // Small delay to ensure everything is ready
       };
       
       dataChannel.onmessage = handleDataChannelMessage;
       
       // 5. Set up audio element for assistant audio responses
-      const audioEl = document.createElement("audio");
-      audioEl.autoplay = true;
+      // Create a new audio element or reuse existing one
+      if (!audioElementRef.current) {
+        const audioEl = document.createElement("audio");
+        audioEl.autoplay = true;
+        audioElementRef.current = audioEl;
+        console.log("Created new audio element for output");
+      } else {
+        console.log("Reusing existing audio element");
+        // Make sure the audio element is ready for a new session
+        audioElementRef.current.srcObject = null;
+      }
 
       // 6. Handle incoming audio stream from assistant
       pc.ontrack = (event) => {
-        audioEl.srcObject = event.streams[0];
+        console.log("Received track from peer:", event.track.kind);
+        if (audioElementRef.current) {
+          audioElementRef.current.srcObject = event.streams[0];
+          audioElementRef.current.muted = false;
+          audioElementRef.current.volume = 1.0;
+          console.log("Set audio element source to incoming stream");
+        } else {
+          console.error("No audio element available for output");
+        }
 
         // Setup audio analysis for visualization
         const audioCtx = new (window.AudioContext || window.AudioContext)();
@@ -623,6 +781,9 @@ export default function useWebRTCAudioSession(
         analyserRef.current = inboundAnalyzer;
 
         // Start volume monitoring
+        if (volumeIntervalRef.current) {
+          clearInterval(volumeIntervalRef.current);
+        }
         volumeIntervalRef.current = window.setInterval(() => {
           setCurrentVolume(getVolume());
         }, 100);
@@ -808,6 +969,18 @@ export default function useWebRTCAudioSession(
     if (volumeIntervalRef.current) {
       clearInterval(volumeIntervalRef.current);
       volumeIntervalRef.current = null;
+    }
+    
+    // Clean up audio element
+    if (audioElementRef.current) {
+      try {
+        audioElementRef.current.srcObject = null;
+        audioElementRef.current.pause();
+        console.log("Cleaned up audio element");
+      } catch (err) {
+        console.warn("Error cleaning up audio element:", err);
+      }
+      // Don't set to null as we might reuse it
     }
     
     analyserRef.current = null;

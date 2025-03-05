@@ -170,7 +170,7 @@ const App: React.FC = () => {
               Your responses will be used to provide personalized support through your cancer journey.
             </p>
             <p className="text-slate-500 dark:text-slate-400 text-sm max-w-md">
-              The session will take approximately 30 minutes. You can pause at any time if you need a break.
+              The session will take approximately 5-10 minutes. You can pause at any time if you need a break.
             </p>
             <div className="flex flex-col items-center space-y-2 mt-4 mb-2">
               <div className="flex items-center space-x-2">

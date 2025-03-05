@@ -17,11 +17,11 @@ export function VoiceSelector({ value, onValueChange }: VoiceSelectorProps) {
           <SelectValue placeholder={t('voice.select')} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="ash">{t('voice.ash')}</SelectItem>
-          <SelectItem value="ballad">{t('voice.ballad')}</SelectItem>
           <SelectItem value="coral">{t('voice.coral')}</SelectItem>
           <SelectItem value="sage">{t('voice.sage')}</SelectItem>
           <SelectItem value="verse">{t('voice.verse')}</SelectItem>
+          <SelectItem value="ash">{t('voice.ash')}</SelectItem>
+          <SelectItem value="ballad">{t('voice.ballad')}</SelectItem>
         </SelectContent>
       </Select>
     </div>
