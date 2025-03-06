@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noise Cancellation Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+    }
+    button {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .status {
+      margin: 20px 0;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .inactive {
+      background-color: #f8f9fa;
+      color: #6c757d;
+    }
+    .active {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    
+    /* Audio meter styles */
+    .meter-container {
+      display: flex;
+      align-items: flex-end;
+      height: 200px;
+      width: 100%;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      padding: 10px;
+      margin: 20px 0;
+      position: relative;
+    }
+    .meter {
+      width: 30px;
+      background-color: #e9ecef;
+      margin-right: 10px;
+      border-radius: 2px;
+      position: relative;
+      height: 100%;
+    }
+    .meter-level {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      border-radius: 2px;
+      transition: height 0.1s ease;
+      background-color: #4CAF50;
+    }
+    .meter-label {
+      position: absolute;
+      bottom: -25px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+    }
+    .threshold-line {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background-color: #dc3545;
+      left: 0;
+      z-index: 10;
+    }
+    
+    /* Gate controls styles */
+    .controls {
+      margin: 20px 0;
+      padding: 20px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+    }
+    .control-group {
+      margin-bottom: 15px;
+    }
+    .control-label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .slider-container {
+      display: flex;
+      align-items: center;
+    }
+    .slider {
+      flex-grow: 1;
+      margin-right: 10px;
+    }
+    .slider-value {
+      width: 60px;
+      text-align: right;
+    }
+    
+    /* dB scale */
+    .db-scale {
+      position: absolute;
+      left: -40px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+    .db-mark {
+      position: relative;
+    }
+    .db-mark::after {
+      content: '';
+      position: absolute;
+      width: 5px;
+      height: 1px;
+      background-color: #aaa;
+      right: -10px;
+      top: 50%;
+    }
+    
+    /* Debug info */
+    .debug-info {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>Noise Cancellation Test</h1>
+  
+  <div id="status" class="status inactive">
+    Noise cancellation is inactive
+  </div>
+  
+  <div>
+    <button id="initButton">Initialize Noise Cancellation</button>
+    <button id="toggleButton" disabled>Toggle Noise Cancellation</button>
+  </div>
+  
+  <!-- Audio Meter -->
+  <h2>Audio Meter</h2>
+  <div class="meter-container">
+    <div class="db-scale">
+      <div class="db-mark">+12</div>
+      <div class="db-mark">0</div>
+      <div class="db-mark">-12</div>
+      <div class="db-mark">-24</div>
+      <div class="db-mark">-36</div>
+      <div class="db-mark">-48</div>
+      <div class="db-mark">-60</div>
+    </div>
+    
+    <div class="meter">
+      <div id="inputLevel" class="meter-level" style="height: 0%; background-color: #4CAF50;"></div>
+      <div class="meter-label">Input</div>
+    </div>
+    
+    <div class="meter">
+      <div id="outputLevel" class="meter-level" style="height: 0%; background-color: #2196F3;"></div>
+      <div class="meter-label">Output</div>
+    </div>
+    
+    <div id="thresholdLine" class="threshold-line" style="bottom: 33.3%;"></div>
+  </div>
+  
+  <!-- Gate Controls -->
+  <div class="controls">
+    <h2>Noise Gate Controls</h2>
+    
+    <div class="control-group">
+      <label class="control-label" for="thresholdSlider">Noise Gate Threshold</label>
+      <div class="slider-container">
+        <input type="range" id="thresholdSlider" class="slider" min="-60" max="0" step="1" value="-30">
+        <span id="thresholdValue" class="slider-value">-30 dB</span>
+      </div>
+    </div>
+    
+    <div class="control-group">
+      <label class="control-label" for="attackSlider">Attack Time</label>
+      <div class="slider-container">
+        <input type="range" id="attackSlider" class="slider" min="0.001" max="0.1" step="0.001" value="0.01">
+        <span id="attackValue" class="slider-value">0.01 s</span>
+      </div>
+    </div>
+    
+    <div class="control-group">
+      <label class="control-label" for="releaseSlider">Release Time</label>
+      <div class="slider-container">
+        <input type="range" id="releaseSlider" class="slider" min="0.01" max="1" step="0.01" value="0.1">
+        <span id="releaseValue" class="slider-value">0.1 s</span>
+      </div>
+    </div>
+  </div>
+  
+  <div>
+    <h2>Audio Input/Output</h2>
+    <p>Note: Audio controls are hidden as they're not needed for this test. The audio is being processed in real-time.</p>
+  </div>
+  
+  <div id="debugInfo" class="debug-info">Debug information will appear here...</div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const statusEl = document.getElementById('status');
+      const initButton = document.getElementById('initButton');
+      const toggleButton = document.getElementById('toggleButton');
+      const debugInfoEl = document.getElementById('debugInfo');
+      
+      // Audio meter elements
+      const inputLevelEl = document.getElementById('inputLevel');
+      const outputLevelEl = document.getElementById('outputLevel');
+      const thresholdLineEl = document.getElementById('thresholdLine');
+      
+      // Gate control elements
+      const thresholdSlider = document.getElementById('thresholdSlider');
+      const thresholdValue = document.getElementById('thresholdValue');
+      const attackSlider = document.getElementById('attackSlider');
+      const attackValue = document.getElementById('attackValue');
+      const releaseSlider = document.getElementById('releaseSlider');
+      const releaseValue = document.getElementById('releaseValue');
+      
+      let audioContext = null;
+      let sourceNode = null;
+      let noiseNode = null;
+      let stream = null;
+      let destinationNode = null;
+      let isProcessing = false;
+      
+      // Analyzer nodes for metering
+      let inputAnalyser = null;
+      let outputAnalyser = null;
+      
+      // Animation frame request ID
+      let animationId = null;
+      
+      // dB range for visualization
+      const minDb = -60;
+      const maxDb = +12;
+      const dbRange = maxDb - minDb;
+      
+      // Debug function
+      const debug = (message) => {
+        const timestamp = new Date().toISOString().substr(11, 8);
+        debugInfoEl.textContent = `[${timestamp}] ${message}\n` + debugInfoEl.textContent;
+        console.log(message);
+      };
+      
+      // Convert a dB value to a percentage height for visualization
+      const dbToPercent = (db) => {
+        return Math.max(0, Math.min(100, ((db - minDb) / dbRange) * 100));
+      };
+      
+      // Get color for level based on value
+      const getLevelColor = (db) => {
+        if (db > +6) return '#9C27B0'; // purple
+        if (db > 0) return '#F44336';  // red
+        if (db > -6) return '#FF9800';  // orange
+        if (db > -18) return '#4CAF50'; // green
+        if (db > -36) return '#2196F3'; // blue
+        return '#9E9E9E'; // gray
+      };
+      
+      // Update the threshold line position based on the slider value
+      const updateThresholdLine = () => {
+        const thresholdDb = parseFloat(thresholdSlider.value);
+        const percent = dbToPercent(thresholdDb);
+        thresholdLineEl.style.bottom = `${percent}%`;
+      };
+      
+      // Update the worklet parameters when controls change
+      const updateWorkletParams = () => {
+        if (noiseNode) {
+          const threshold = parseFloat(thresholdSlider.value);
+          const attack = parseFloat(attackSlider.value);
+          const release = parseFloat(releaseSlider.value);
+          
+          debug(`Updating parameters: threshold=${threshold}dB, attack=${attack}s, release=${release}s`);
+          
+          // Update the worklet parameters
+          noiseNode.parameters.get('threshold').setValueAtTime(threshold, audioContext.currentTime);
+          noiseNode.parameters.get('attackTime').setValueAtTime(attack, audioContext.currentTime);
+          noiseNode.parameters.get('releaseTime').setValueAtTime(release, audioContext.currentTime);
+        }
+      };
+      
+      // Update the meter display
+      const updateMeters = () => {
+        if (!audioContext || !inputAnalyser || !outputAnalyser) {
+          animationId = requestAnimationFrame(updateMeters);
+          return;
+        }
+        
+        // Get input level
+        const inputArray = new Uint8Array(inputAnalyser.frequencyBinCount);
+        inputAnalyser.getByteFrequencyData(inputArray);
+        let inputSum = 0;
+        for (let i = 0; i < inputArray.length; i++) {
+          inputSum += inputArray[i];
+        }
+        const inputAvg = inputSum / inputArray.length;
+        const inputDb = inputAvg === 0 ? minDb : minDb + (inputAvg / 255) * dbRange;
+        
+        // Get output level
+        const outputArray = new Uint8Array(outputAnalyser.frequencyBinCount);
+        outputAnalyser.getByteFrequencyData(outputArray);
+        let outputSum = 0;
+        for (let i = 0; i < outputArray.length; i++) {
+          outputSum += outputArray[i];
+        }
+        const outputAvg = outputSum / outputArray.length;
+        const outputDb = outputAvg === 0 ? minDb : minDb + (outputAvg / 255) * dbRange;
+        
+        // Update meter display
+        const inputPercent = dbToPercent(inputDb);
+        const outputPercent = dbToPercent(outputDb);
+        
+        inputLevelEl.style.height = `${inputPercent}%`;
+        outputLevelEl.style.height = `${outputPercent}%`;
+        
+        // Update meter colors
+        inputLevelEl.style.backgroundColor = getLevelColor(inputDb);
+        outputLevelEl.style.backgroundColor = getLevelColor(outputDb);
+        
+        // Continue animation
+        animationId = requestAnimationFrame(updateMeters);
+      };
+      
+      const updateStatus = (message, type) => {
+        statusEl.textContent = message;
+        statusEl.className = `status ${type}`;
+        debug(message);
+      };
+      
+      const handleError = (error) => {
+        console.error('Error:', error);
+        updateStatus(`Error: ${error.message || 'Unknown error'}`, 'error');
+        initButton.disabled = false;
+        toggleButton.disabled = true;
+      };
+      
+      // Event listeners for controls
+      thresholdSlider.addEventListener('input', () => {
+        thresholdValue.textContent = `${thresholdSlider.value} dB`;
+        updateThresholdLine();
+        updateWorkletParams();
+      });
+      
+      attackSlider.addEventListener('input', () => {
+        attackValue.textContent = `${attackSlider.value} s`;
+        updateWorkletParams();
+      });
+      
+      releaseSlider.addEventListener('input', () => {
+        releaseValue.textContent = `${releaseSlider.value} s`;
+        updateWorkletParams();
+      });
+      
+      // Initialize the audio context on user interaction
+      initButton.addEventListener('click', async () => {
+        try {
+          initButton.disabled = true;
+          updateStatus('Initializing...', 'inactive');
+          
+          // Create audio context - must be created in response to a user gesture
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          debug(`Audio context created. Sample rate: ${audioContext.sampleRate}Hz`);
+          
+          debug("Requesting microphone access...");
+          
+          try {
+            // Get user media with explicit error handling
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: false,
+                autoGainControl: false,
+                noiseSuppression: false,
+                channelCount: 1
+              }
+            });
+            
+            debug("Microphone access granted!");
+            
+            // Create source node
+            sourceNode = audioContext.createMediaStreamSource(stream);
+            debug("Media stream source node created");
+            
+            // Create destination node for output
+            destinationNode = audioContext.createMediaStreamDestination();
+            debug("Media stream destination node created");
+            
+            // Create a gain node for the output to speakers
+            const speakerOutput = audioContext.createGain();
+            speakerOutput.gain.value = 1.0;
+            debug("Speaker output gain node created");
+            
+            // Create analyzer nodes for metering with appropriate settings
+            inputAnalyser = audioContext.createAnalyser();
+            inputAnalyser.fftSize = 1024; // Larger FFT for better resolution
+            inputAnalyser.minDecibels = -90;
+            inputAnalyser.maxDecibels = 0;
+            inputAnalyser.smoothingTimeConstant = 0.85;
+            debug("Input analyzer created");
+            
+            outputAnalyser = audioContext.createAnalyser();
+            outputAnalyser.fftSize = 1024;
+            outputAnalyser.minDecibels = -90;
+            outputAnalyser.maxDecibels = 0;
+            outputAnalyser.smoothingTimeConstant = 0.85;
+            debug("Output analyzer created");
+            
+            // Connect source to input analyzer
+            sourceNode.connect(inputAnalyser);
+            debug("Source connected to input analyzer");
+            
+            // Try to load the worklet from the file
+            try {
+              debug("Loading audio worklet module...");
+              await audioContext.audioWorklet.addModule('./SimpleNoiseWorklet.js');
+              debug("Audio worklet module loaded successfully");
+              
+              // Create the worklet node with parameters
+              noiseNode = new AudioWorkletNode(audioContext, 'simple-noise-worklet', {
+                numberOfInputs: 1,
+                numberOfOutputs: 1,
+                outputChannelCount: [1],
+                processorOptions: {},
+                parameterData: {
+                  threshold: parseFloat(thresholdSlider.value),
+                  attackTime: parseFloat(attackSlider.value),
+                  releaseTime: parseFloat(releaseSlider.value)
+                }
+              });
+              
+              debug("Noise worklet node created");
+              
+              // Connect the nodes for processing
+              sourceNode.disconnect(); // Disconnect any previous connections
+              sourceNode.connect(inputAnalyser);
+              sourceNode.connect(noiseNode);
+              noiseNode.connect(outputAnalyser);
+              outputAnalyser.connect(speakerOutput);
+              speakerOutput.connect(audioContext.destination);
+              
+              debug("Audio nodes connected for processing");
+              
+              // Start metering
+              updateMeters();
+              debug("Audio metering started");
+              
+              isProcessing = true;
+              updateStatus('Noise cancellation is active', 'active');
+              toggleButton.disabled = false;
+              toggleButton.textContent = 'Disable Noise Cancellation';
+            } catch (workletError) {
+              debug(`Failed to load worklet: ${workletError.message}`);
+              
+              // Fall back to direct connection
+              sourceNode.connect(outputAnalyser);
+              outputAnalyser.connect(speakerOutput);
+              speakerOutput.connect(audioContext.destination);
+              
+              // Start metering
+              updateMeters();
+              debug("Audio metering started (fallback mode)");
+              
+              throw new Error(`Failed to initialize noise cancellation: ${workletError.message}`);
+            }
+          } catch (mediaError) {
+            debug(`Media error: ${mediaError.message}`);
+            throw new Error(`Microphone access denied or not available: ${mediaError.message}`);
+          }
+        } catch (error) {
+          handleError(error);
+        }
+      });
+      
+      toggleButton.addEventListener('click', () => {
+        if (isProcessing) {
+          // Disable noise cancellation
+          sourceNode.disconnect();
+          noiseNode.disconnect();
+          sourceNode.connect(inputAnalyser);
+          sourceNode.connect(outputAnalyser);
+          outputAnalyser.connect(audioContext.destination);
+          
+          isProcessing = false;
+          updateStatus('Noise cancellation is paused', 'inactive');
+          toggleButton.textContent = 'Enable Noise Cancellation';
+          debug("Noise cancellation disabled - direct passthrough");
+        } else {
+          // Enable noise cancellation
+          sourceNode.disconnect();
+          sourceNode.connect(inputAnalyser);
+          sourceNode.connect(noiseNode);
+          noiseNode.connect(outputAnalyser);
+          outputAnalyser.connect(audioContext.destination);
+          
+          isProcessing = true;
+          updateStatus('Noise cancellation is active', 'active');
+          toggleButton.textContent = 'Disable Noise Cancellation';
+          debug("Noise cancellation enabled");
+        }
+      });
+      
+      // Initialize threshold line
+      updateThresholdLine();
+      
+      // Display browser compatibility message
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        updateStatus('Your browser does not support accessing the microphone. Please use a modern browser like Chrome, Firefox, or Safari.', 'error');
+        initButton.disabled = true;
+      } else {
+        debug("Browser supports getUserMedia API");
+      }
+    });
+  </script>
+</body>
+</html> 

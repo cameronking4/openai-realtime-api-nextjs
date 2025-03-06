@@ -18,6 +18,7 @@ import { ToolsEducation } from "@/components/tools-education";
 import { SidePanelTokenUsage } from "./side-panel-token-usage";
 import { SidePanelLogs } from "./side-panel-logs";
 import { Message as MessageType } from "@/types";
+import AudioSettings from "./audio-settings";
 
 export interface SidePanelProps {
   voice: string;
@@ -82,9 +83,13 @@ export function SidePanel({ voice, onVoiceChange, messages = [] }: SidePanelProp
           
           <div className="border-t pt-4">
             <h3 className="text-lg font-medium mb-2">{t('sidePanel.settings')}</h3>
-            <div className="space-y-2">
+            <div className="space-y-4">
               <div className="p-2 rounded-md hover:bg-muted transition-colors">
                 {t('sidePanel.language')}: {t('language')}
+              </div>
+              
+              <div className="p-2">
+                <AudioSettings />
               </div>
             </div>
           </div>

@@ -1,0 +1,12 @@
+{
+  "id": "transcript_1741240496868",
+  "sessionId": "session_1741240496867",
+  "createdAt": "2025-03-06T05:54:56.868Z",
+  "content": "[12:53 AM] Patient: Okay, you can stop now\n\n\n[12:53 AM] Eve: Hello, I'm Eve, your AI assistant for today. I'm here to help assess your wellbeing and mental health as part of your healing journey. Regular assessments like these are important to ensure you're getting the support you need. Shall we get started?\n\n[12:53 AM] Patient: It hurts.\n\n\n[12:54 AM] Eve: Hello there! I'm glad you're here. I'm Eve, your AI assistant, and I'm here to support you with a psycho-oncology assessment today. These assessments are important as they help us understand your well-being and mental health during your cancer journey. Shall we get started?\n\n[12:54 AM] Patient: Yes\n\n[12:54 AM] Eve: Great! Let's begin. How have you been feeling about your treatment lately?\n\n[12:54 AM] Patient: You're anxious\n\n\n[12:54 AM] Eve: It's understandable to feel stressed. Can you describe your mood over the past week?\n\n[12:54 AM] Patient: I was very down.\n\n\n[12:54 AM] Eve: I'm sorry to hear that. Feeling down can be really tough. What aspects of your cancer experience are most challenging for you right now?\n\n[12:54 AM] Patient: depression\n\n\n[12:54 AM] Eve: Thank you for sharing that. It's important to acknowledge those feelings. Now, let's talk about how confident you feel in managing your physical symptoms and side effects. How do you feel about that?\n\n",
+  "metadata": {
+    "messageCount": 12,
+    "userMessageCount": 6,
+    "assistantMessageCount": 6,
+    "duration": 58
+  }
+}

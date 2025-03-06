@@ -1,0 +1,11 @@
+{
+  "projectName": "lw-ai",
+  "defaultLanguage": "typescript",
+  "commands": {
+    "dev": "make dev",
+    "build": "npm run build",
+    "start": "npm run start",
+    "lint": "npm run lint",
+    "logs-backend": "make logs-backend-tail"
+  }
+}

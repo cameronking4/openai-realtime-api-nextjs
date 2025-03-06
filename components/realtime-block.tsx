@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { MicIcon, MicOffIcon } from 'lucide-react';
 import { useModalityContext } from "@/contexts/modality-context";
 import useWebRTCAudioSession from "@/hooks/use-webrtc";
+import GateSettings from '@/components/gate-settings';
  
 const RealtimeBlock: React.FC<{
   voice: string;
@@ -17,7 +18,20 @@ const RealtimeBlock: React.FC<{
   const [bars, setBars] = useState(Array(50).fill(5));
   const { modality, setModality, isAudioEnabled } = useModalityContext();
   const [isChangingModality, setIsChangingModality] = useState(false);
-  const { updateModality } = useWebRTCAudioSession(voice);
+  const { 
+    updateModality, 
+    setGateThreshold, 
+    setAiSpeakingThreshold, 
+    gateThreshold, 
+    aiSpeakingThreshold,
+    turnDetectionThreshold,
+    setTurnDetectionThreshold,
+    silenceDurationMs,
+    setSilenceDurationMs,
+    updateTurnDetectionSettings,
+    audioProcessingEnabled,
+    setAudioProcessingEnabled
+  } = useWebRTCAudioSession(voice);
   const lastModalityChangeTime = useRef<number>(0);
  
   useEffect(() => {
@@ -198,6 +212,22 @@ const RealtimeBlock: React.FC<{
           </AnimatePresence>
         </Button>
       </motion.div>
+      
+      {/* Add the GateSettings component */}
+      {isSessionActive && isAudioEnabled && (
+        <GateSettings
+          onThresholdChange={setGateThreshold}
+          onAiThresholdChange={setAiSpeakingThreshold}
+          initialThreshold={gateThreshold}
+          initialAiThreshold={aiSpeakingThreshold}
+          turnDetectionThreshold={turnDetectionThreshold}
+          onTurnDetectionThresholdChange={setTurnDetectionThreshold}
+          silenceDurationMs={silenceDurationMs}
+          onSilenceDurationMsChange={setSilenceDurationMs}
+          updateTurnDetectionSettings={updateTurnDetectionSettings}
+          onAudioProcessingChange={setAudioProcessingEnabled}
+        />
+      )}
     </div>
   );
 };
