@@ -44,7 +44,7 @@ export default function RootLayout({
       <body className={cn("min-h-dvh bg-background font-sans antialiased", poppins.variable)}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
@@ -52,7 +52,7 @@ export default function RootLayout({
             <VoiceProvider>
               <TokenProvider>
                 <ModalityProvider>
-                  <div className="relative flex min-h-dvh flex-col bg-background items-center">
+                  <div className="relative flex min-h-dvh flex-col bg-white items-center">
                     <Banner />
                     {children}
                     <Footer />

@@ -3,22 +3,37 @@ import fs from 'fs';
 import path from 'path';
 import { PSYCHO_ONCOLOGY_ASSESSMENT_PROMPT } from "../../../prompts/ai-conversation-templates";
 
-// Read the API key directly from .env.local file
+// Read the API key directly from .env.local file or .env file
 let apiKey = '';
 try {
-  const envLocalPath = path.join(process.cwd(), '.env.local');
-  const envLocalContent = fs.readFileSync(envLocalPath, 'utf8');
-  const apiKeyMatch = envLocalContent.match(/OPENAI_API_KEY=([^\n]+)/);
-  if (apiKeyMatch && apiKeyMatch[1]) {
-    apiKey = apiKeyMatch[1].trim();
-    console.log('Successfully read API key from .env.local');
-  } else {
-    // Fallback to process.env
+  // First try to read from .env.local
+  let envPath = path.join(process.cwd(), '.env.local');
+  if (!fs.existsSync(envPath)) {
+    // If .env.local doesn't exist, try .env
+    envPath = path.join(process.cwd(), '.env');
+  }
+  
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    
+    // Use a more robust regex that can handle multiline values
+    const apiKeyRegex = /OPENAI_API_KEY=([^\n]*(?:\n[^\n]+)*?)(?=\n\w+=|\n*$)/;
+    const match = envContent.match(apiKeyRegex);
+    
+    if (match && match[1]) {
+      // Clean up the key - remove any newlines and trim
+      apiKey = match[1].replace(/\n/g, '').trim();
+      console.log('Successfully read API key from env file');
+    }
+  }
+  
+  // If we still don't have an API key, try process.env
+  if (!apiKey) {
     apiKey = process.env.OPENAI_API_KEY || '';
     console.log('Using API key from process.env');
   }
 } catch (error) {
-  console.error('Error reading .env.local file:', error);
+  console.error('Error reading env file:', error);
   // Fallback to process.env
   apiKey = process.env.OPENAI_API_KEY || '';
   console.log('Using API key from process.env');

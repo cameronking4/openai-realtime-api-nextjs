@@ -369,7 +369,7 @@ export default function CancerChatPage() {
   );
 
   return (
-    <main className="min-h-screen max-h-screen overflow-hidden bg-gray-50">
+    <main className="min-h-screen max-h-screen overflow-hidden bg-white">
       {hasError && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg">
