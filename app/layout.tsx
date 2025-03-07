@@ -20,8 +20,8 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Healing AI Guide",
-  description: "Next.js Starter for using the OpenAI Realtime API WebRTC method. Starter showcases capabilities of OpenAI's latest Realtime API (12/17/2024). It has all shadcn/ui components to build your own real-time voice AI application. Fastest & latest way to do Voice AI (Dec 2024), implementing API advancements of Day of OpenAI's 12 days of Christmas.",
+  title: "Your Healing Check-in | Cancer Chat",
+  description: "A supportive chat interface for cancer patients to express their feelings and receive guidance.",
   authors: [{ name: siteConfig.author, url: siteConfig.links.twitter }],
   creator: siteConfig.author,
   metadataBase: new URL(siteConfig.url),
