@@ -1,0 +1,24 @@
+{
+  "stagehand": {
+    "provider": "anthropic",
+    "model": "claude-3-7-sonnet-latest",
+    "timeout": 90000
+  },
+  "browser": {
+    "headless": false,
+    "model": "claude-3-7-sonnet-latest"
+  },
+  "perplexity": {
+    "model": "sonar-pro",
+    "maxTokens": 8000
+  },
+  "gemini": {
+    "model": "gemini-2.0-flash-thinking-exp-01-21",
+    "maxTokens": 10000
+  },
+  "plan": {
+    "fileProvider": "gemini",
+    "thinkingProvider": "perplexity",
+    "thinkingModel": "r1-1776"
+  }
+} 
