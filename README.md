@@ -71,5 +71,104 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 - [OpenAI](https://openai.com/) for their API and models.
 - [Next.js](https://nextjs.org/) for the framework.
 - [Tailwind CSS](https://tailwindcss.com/) for styling.
-- [Simon Willison’s Weblog](https://simonwillison.net/2024/Dec/17/openai-webrtc/) for inspiration
+- [Simon Willison's Weblog](https://simonwillison.net/2024/Dec/17/openai-webrtc/) for inspiration
 - [Originator: skrivov](https://github.com/skrivov/openai-voice-webrtc-next) for the WebRTC and Nextjs implementation
+
+# Living Well AI
+
+A Next.js application for cancer patient support with voice and text chat capabilities.
+
+## Deployment to Vercel
+
+### Prerequisites
+
+- A Vercel account
+- Access to the following API keys:
+  - OpenAI API Key
+  - Anthropic API Key
+  - Perplexity API Key
+  - Google Gemini API Key
+
+### Deployment Steps
+
+1. **Fork or Clone the Repository**
+
+   Fork or clone this repository to your GitHub account.
+
+2. **Connect to Vercel**
+
+   - Go to [Vercel](https://vercel.com) and sign in
+   - Click "Add New" > "Project"
+   - Import your GitHub repository
+   - Configure the project:
+     - Framework Preset: Next.js
+     - Root Directory: ./
+
+3. **Set Environment Variables**
+
+   In the Vercel project settings, add the following environment variables:
+
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `ANTHROPIC_API_KEY`: Your Anthropic API key
+   - `PERPLEXITY_API_KEY`: Your Perplexity API key
+   - `GEMINI_API_KEY`: Your Google Gemini API key
+   - `OPENAI_DIRECT_MODE`: Set to "False"
+
+4. **Deploy**
+
+   Click "Deploy" and wait for the build to complete.
+
+## Local Development
+
+1. **Install Dependencies**
+
+   ```bash
+   npm install
+   ```
+
+2. **Set Up Environment Variables**
+
+   Create a `.env.local` file in the root directory with the following variables:
+
+   ```
+   OPENAI_API_KEY=your_openai_api_key
+   ANTHROPIC_API_KEY=your_anthropic_api_key
+   PERPLEXITY_API_KEY=your_perplexity_api_key
+   GEMINI_API_KEY=your_gemini_api_key
+   OPENAI_DIRECT_MODE=False
+   ```
+
+3. **Run Development Server**
+
+   ```bash
+   npm run dev
+   ```
+
+4. **Build for Production**
+
+   ```bash
+   npm run build
+   ```
+
+5. **Start Production Server**
+
+   ```bash
+   npm start
+   ```
+
+## Features
+
+- Voice and text chat interface for cancer patients
+- Real-time audio processing
+- Psychological assessment generation
+- Transcript management
+- Suggested responses
+
+## Technologies
+
+- Next.js 15
+- React 19
+- TypeScript
+- Tailwind CSS
+- Anthropic Claude API
+- WebRTC for audio processing

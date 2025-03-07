@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "OPENAI_API_KEY": "@openai-api-key",
+    "ANTHROPIC_API_KEY": "@anthropic-api-key",
+    "PERPLEXITY_API_KEY": "@perplexity-api-key",
+    "GEMINI_API_KEY": "@gemini-api-key",
+    "OPENAI_DIRECT_MODE": "False"
+  }
+} 
