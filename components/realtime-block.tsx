@@ -1,235 +1,183 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { MicIcon, MicOffIcon } from 'lucide-react';
-import { useModalityContext } from "@/contexts/modality-context";
-import useWebRTCAudioSession from "@/hooks/use-webrtc";
-import GateSettings from '@/components/gate-settings';
- 
+import React, { useState, useEffect, useRef } from "react";
+import { Mic as MicIcon, MicOff as MicOffIcon } from "lucide-react";
+
+// Gate settings component for audio threshold controls
+interface GateSettingsProps {
+  onThresholdChange?: (value: number) => void;
+}
+
+const GateSettings: React.FC<GateSettingsProps> = ({ 
+  onThresholdChange = () => {} 
+}) => {
+  const [localThreshold, setLocalThreshold] = useState(0.01);
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value);
+    setLocalThreshold(value);
+    onThresholdChange(value);
+  };
+  
+  return (
+    <div className="mt-2 text-xs text-gray-500">
+      <div className="flex items-center gap-2">
+        <span>Noise Gate:</span>
+        <input 
+          type="range" 
+          min="0" 
+          max="0.1" 
+          step="0.001" 
+          value={localThreshold} 
+          onChange={handleChange} 
+          className="w-full accent-cancer-voice"
+        />
+        <span>{(localThreshold * 100).toFixed(1)}%</span>
+      </div>
+    </div>
+  );
+};
+
 const RealtimeBlock: React.FC<{
   voice: string;
   isSessionActive: boolean;
   handleStartStopClick: () => void;
   msgs: any[];
   currentVolume: number;
-}> = ({ voice, isSessionActive, handleStartStopClick, msgs, currentVolume }) => {
-  const [bars, setBars] = useState(Array(50).fill(5));
-  const { modality, setModality, isAudioEnabled } = useModalityContext();
-  const [isChangingModality, setIsChangingModality] = useState(false);
-  const { 
-    updateModality, 
-    setGateThreshold, 
-    setAiSpeakingThreshold, 
-    gateThreshold, 
-    aiSpeakingThreshold,
-    turnDetectionThreshold,
-    setTurnDetectionThreshold,
-    silenceDurationMs,
-    setSilenceDurationMs,
-    updateTurnDetectionSettings,
-    audioProcessingEnabled,
-    setAudioProcessingEnabled
-  } = useWebRTCAudioSession(voice);
-  const lastModalityChangeTime = useRef<number>(0);
- 
-  useEffect(() => {
-    if (isSessionActive && isAudioEnabled) {
-      updateBars(currentVolume);
-    } else {
-      resetBars();
-    }
-  }, [currentVolume, isSessionActive, isAudioEnabled]);
- 
-  const updateBars = (volume: number) => {
-    if (volume > 0.002) {
-      setBars(bars.map(() => Math.random() * volume * 500));
-    } else {
-      setBars(Array(50).fill(5));
-    }
-  };
- 
-  const resetBars = () => {
-    setBars(Array(50).fill(5));
-  };
- 
-  const micPulseAnimation = {
-    scale: [1, 1.2, 1],
-    opacity: [1, 0.8, 1],
-    transition: { duration: 0.8, repeat: Infinity }
+  showVoiceVisualizer?: boolean;
+  compact?: boolean;
+}> = ({ 
+  voice, 
+  isSessionActive, 
+  handleStartStopClick, 
+  msgs, 
+  currentVolume,
+  showVoiceVisualizer = false,
+  compact = true,
+}) => {
+  const [gateThreshold, setGateThreshold] = useState(0.01);
+  
+  // Simple handler for the button click
+  const handleButtonClick = async () => {
+    // Simply call the parent's handler
+    handleStartStopClick();
   };
 
-  // Handle button click
-  const handleButtonClick = async () => {
-    // Prevent rapid modality changes (debounce)
-    const now = Date.now();
-    if (now - lastModalityChangeTime.current < 1000) {
-      console.log("Ignoring rapid modality change request");
-      return;
-    }
-    lastModalityChangeTime.current = now;
+  const getButtonClass = () => {
+    // Base classes
+    let classes = "rounded-full flex items-center justify-center transition-all duration-200 ";
     
+    // Sizing classes based on compact mode
+    classes += compact ? "w-10 h-10 " : "w-12 h-12 ";
+    
+    // State-specific classes
     if (!isSessionActive) {
-      // Start session if not active
-      handleStartStopClick();
+      // Disabled state - grey when disabled
+      classes += "bg-gray-200 text-gray-500 cursor-not-allowed ";
+    } else if (voice === "none") {
+      // Text-only mode - blue button
+      classes += "bg-cancer-accent hover:bg-cancer-accent/80 text-white ";
     } else {
-      // Toggle modality if session is active
-      setIsChangingModality(true);
-      const newModality = modality === "text" ? "text+audio" : "text";
+      // Voice mode (active) - green button
+      classes += "bg-cancer-voice hover:bg-cancer-voice/80 text-white ";
       
-      try {
-        console.log(`Changing modality from ${modality} to ${newModality}`);
-        
-        // First update the context
-        setModality(newModality);
-        
-        // Then update the WebRTC session
-        await updateModality(newModality);
-        
-        console.log(`Modality changed successfully to ${newModality}`);
-      } catch (error) {
-        console.error("Error changing modality:", error);
-      } finally {
-        setIsChangingModality(false);
+      // Add pulse animation if there's voice activity
+      if (currentVolume > 0.05) {
+        classes += "animate-pulse ";
       }
     }
-  };
-  
-  // Get button appearance based on state
-  const getButtonClass = () => {
-    if (isChangingModality) {
-      return "bg-yellow-500 hover:bg-yellow-600 text-white";
-    }
     
-    if (!isSessionActive) {
-      return "bg-primary hover:bg-primary/90";
-    }
-    
-    return isAudioEnabled 
-      ? "bg-red-500 hover:bg-red-600 text-white" 
-      : "bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600";
+    return classes;
   };
-  
+
   const getButtonTitle = () => {
-    if (isChangingModality) {
-      return "Changing modality...";
-    }
-    
     if (!isSessionActive) {
-      return "Start Session";
+      return "Voice input not available";
     }
-    
-    return isAudioEnabled ? "Switch to Text Only" : "Enable Voice";
+    if (voice === "none") {
+      return "Enable voice input";
+    }
+    return "Disable voice input";
   };
- 
-  return (
-    <div className="flex items-center justify-center gap-4 p-4 rounded">
-      <AnimatePresence>
-        {isSessionActive && isAudioEnabled && (
-          <motion.div
-            className="flex items-center justify-center"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.5 }}
-          >
-            <svg width="200px" height="100px" viewBox="0 0 1000 200" preserveAspectRatio="xMidYMid meet">
-              {bars.map((height, index) => (
-                <React.Fragment key={index}>
-                  <rect
-                    x={500 + index * 20 - 490}
-                    y={100 - height / 2}
-                    width="10"
-                    height={height}
-                    className={`fill-current ${isSessionActive ? 'text-black dark:text-white opacity-70' : 'text-gray-400 opacity-30'}`}
-                  />
-                  <rect
-                    x={500 - index * 20 - 10}
-                    y={100 - height / 2}
-                    width="10"
-                    height={height}
-                    className={`fill-current ${isSessionActive ? 'text-black dark:text-white opacity-70' : 'text-gray-400 opacity-30'}`}
-                  />
-                </React.Fragment>
-              ))}
-            </svg>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      <motion.div
-        animate={isSessionActive && isAudioEnabled && currentVolume === 0 ? micPulseAnimation : {}}
+
+  // Return compact version (just the button) if compact=true
+  if (compact) {
+    // Log for debugging
+    console.log(`RealtimeBlock (compact): voice=${voice}, isSessionActive=${isSessionActive}`);
+    
+    return (
+      <button
+        onClick={isSessionActive ? handleButtonClick : undefined}
+        className={getButtonClass()}
+        title={getButtonTitle()}
+        disabled={!isSessionActive}
+        aria-label={getButtonTitle()}
+        data-voice-state={voice !== "none" ? "active" : "inactive"}
       >
-        <Button 
-          onClick={handleButtonClick}
-          disabled={isChangingModality}
-          className={`flex items-center justify-center w-12 h-12 rounded-full shadow-lg ${getButtonClass()}`}
-          title={getButtonTitle()}
-        >
-          <AnimatePresence>
-            {isChangingModality ? (
-              <motion.div
-                key="changing-modality"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1, rotate: 360 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.5, repeat: Infinity }}
-              >
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
-              </motion.div>
-            ) : !isSessionActive ? (
-              <motion.div
-                key="start-session"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.3 }}
-              >
-                <MicIcon size={24} />
-              </motion.div>
-            ) : isAudioEnabled ? (
-              <motion.div
-                key="session-active-audio"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.3 }}
-              >
-                <MicIcon size={24} />
-              </motion.div>
+        {voice !== "none" ? <MicIcon size={20} /> : <MicOffIcon size={20} />}
+      </button>
+    );
+  }
+
+  // Return full version with visualizer
+  return (
+    <div className="flex flex-col items-center w-full">
+      <div className="relative w-full mb-2 p-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            {showVoiceVisualizer && voice !== "none" && isSessionActive ? (
+              <div className="flex items-center justify-center h-8 gap-1">
+                {/* Create visualization bars with inline styles based on current volume */}
+                {Array.from({length: 10}).map((_, i) => {
+                  // Calculate height based on position and volume
+                  const position = i < 5 ? i : 9 - i; // 0,1,2,3,4,4,3,2,1,0
+                  const scale = 0.5 + position * 0.1; // Vary scale by position
+                  const maxHeight = 16; // Maximum height in pixels
+                  const height = Math.max(2, Math.min(maxHeight, currentVolume * maxHeight * 4 * scale));
+                  const width = Math.max(1, height / 4);
+                  
+                  return (
+                    <div
+                      key={i}
+                      className="bg-cancer-voice rounded-full transition-all duration-150"
+                      style={{
+                        height: `${height}px`,
+                        width: `${width}px`,
+                        opacity: currentVolume < 0.01 ? 0.3 : 1
+                      }}
+                    />
+                  );
+                })}
+              </div>
             ) : (
-              <motion.div
-                key="session-active-text"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.3 }}
-              >
-                <MicOffIcon size={24} />
-              </motion.div>
+              <div className="text-sm text-gray-500 text-center">
+                {!isSessionActive 
+                  ? "Voice input not available" 
+                  : voice === "none" 
+                    ? "Voice input is disabled" 
+                    : "Voice input is enabled"}
+              </div>
             )}
-          </AnimatePresence>
-        </Button>
-      </motion.div>
-      
-      {/* Add the GateSettings component */}
-      {isSessionActive && isAudioEnabled && (
-        <GateSettings
-          onThresholdChange={setGateThreshold}
-          onAiThresholdChange={setAiSpeakingThreshold}
-          initialThreshold={gateThreshold}
-          initialAiThreshold={aiSpeakingThreshold}
-          turnDetectionThreshold={turnDetectionThreshold}
-          onTurnDetectionThresholdChange={setTurnDetectionThreshold}
-          silenceDurationMs={silenceDurationMs}
-          onSilenceDurationMsChange={setSilenceDurationMs}
-          updateTurnDetectionSettings={updateTurnDetectionSettings}
-          onAudioProcessingChange={setAudioProcessingEnabled}
-        />
-      )}
+          </div>
+          <button
+            onClick={isSessionActive ? handleButtonClick : undefined}
+            className={getButtonClass()}
+            disabled={!isSessionActive}
+            aria-label={getButtonTitle()}
+          >
+            {voice !== "none" ? <MicIcon size={20} /> : <MicOffIcon size={20} />}
+          </button>
+        </div>
+        
+        {/* Only show gate settings in full version and when session is active */}
+        {!compact && isSessionActive && voice !== "none" && (
+          <GateSettings
+            onThresholdChange={setGateThreshold}
+          />
+        )}
+      </div>
     </div>
   );
 };
- 
+
 export default RealtimeBlock; 

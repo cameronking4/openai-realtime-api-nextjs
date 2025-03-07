@@ -2,8 +2,16 @@
 
 import { motion } from "framer-motion"
 import Image from "next/image"
+import { usePathname } from "next/navigation";
 
 export const Footer = () => {
+  const pathname = usePathname();
+  
+  // Hide the footer on the cancer-chat route
+  if (pathname === "/cancer-chat") {
+    return null;
+  }
+
   return (
     <motion.footer
       initial={{ opacity: 0, y: 20 }}
@@ -24,6 +32,4 @@ export const Footer = () => {
       </div>
     </motion.footer>
   )
-}
-
-export default Footer 
+} 

@@ -13,6 +13,19 @@ export default {
         sans: ["var(--font-poppins)"],
       },
   		colors: {
+        // Cancer Chat Interface Colors
+        cancer: {
+          'background': '#FFFFFF',
+          'text': '#485158',
+          'subtle': '#a4a4a4',
+          'accent': '#fb6b60',
+          'ai-message': '#c1dcf1',
+          'user-message': '#fea49c',
+          'suggested': '#fea49c',
+          'active': '#48724a',
+          'paused': '#9fafc8',
+          'voice': '#d9507e',
+        },
         neutral: {
           800: 'hsl(var(--neutral-800))',
         },
