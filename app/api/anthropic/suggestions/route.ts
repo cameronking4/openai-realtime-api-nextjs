@@ -100,7 +100,9 @@ export async function POST(req: Request) {
           {
             role: 'user',
             content: `Generate 4 short (less than 10 words each) possible replies to the following message from an AI assistant. 
-            The replies should be from the perspective of a patient with cancer talking to a support assistant. Replies should represent speactrum of responses from a patient with cancer that will help to assess their status.
+            The replies should be from the perspective of a patient with cancer talking to a support assistant. 
+            The replies should addressthe last question of the analyzed question message. 
+            Replies should represent speactrum of responses from a patient with cancer that will help to assess their status - one should be very positive, one should be very negative, one should be neutral, one should be a question to specify the question asked.
             
             AI Message: "${message}"
             
