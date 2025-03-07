@@ -56,7 +56,7 @@
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cmdk": "1.0.0",
+    "cmdk": "^1.0.0",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "embla-carousel-react": "^8.5.1",
@@ -91,5 +91,8 @@
     "tailwindcss-motion": "^1.0.0",
     "typescript": "^5",
     "cursor-tools": "latest"
+  },
+  "overrides": {
+    "cmdk": "^1.0.0"
   }
 }
