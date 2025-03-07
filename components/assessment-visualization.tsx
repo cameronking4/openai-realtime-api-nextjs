@@ -44,7 +44,9 @@ export default function AssessmentVisualization({
 }: AssessmentVisualizationProps) {
   const [parsedData, setParsedData] = React.useState<AssessmentData | null>(null);
   const [parseError, setParseError] = React.useState<string | null>(null);
+  const [patientMessage, setPatientMessage] = React.useState<string | null>(null);
 
+  // Parse the assessment data
   React.useEffect(() => {
     if (assessment) {
       try {
@@ -68,9 +70,11 @@ export default function AssessmentVisualization({
           console.log("Successfully parsed assessment data");
           setParsedData(assessmentObj);
           setParseError(null);
+          setPatientMessage(null); // Reset patient message when parse succeeds
         } else {
           console.error("Assessment data is missing required metrics", assessmentObj);
           setParseError("Assessment data is missing required metrics");
+          setParsedData(null);
         }
       } catch (e) {
         console.error("Failed to parse assessment JSON:", e);
@@ -90,6 +94,7 @@ export default function AssessmentVisualization({
               console.log("Successfully parsed assessment data with alternative method");
               setParsedData(assessmentObj);
               setParseError(null);
+              setPatientMessage(null); // Reset patient message when parse succeeds
               return;
             }
           }
@@ -98,12 +103,80 @@ export default function AssessmentVisualization({
         }
         
         setParseError("Could not parse assessment data");
+        setParsedData(null);
       }
     } else {
       setParsedData(null);
       setParseError(null);
+      setPatientMessage(null);
     }
   }, [assessment]);
+
+  // Extract patient message from the assessment text when there's a parse error
+  React.useEffect(() => {
+    if (assessment && parseError) {
+      try {
+        // Try to find patient message using regex
+        const patientMessageRegex = /"patient":\s*"([^"]*)"/;
+        const match = assessment.match(patientMessageRegex);
+        
+        if (match && match[1]) {
+          setPatientMessage(match[1]);
+        } else {
+          // Alternative approach - look for a section that might be the patient message
+          if (assessment.includes("patient-friendly summary") || 
+              assessment.includes("Patient Summary") || 
+              assessment.includes("Patient Message")) {
+            
+            const lines = assessment.split('\n');
+            for (let i = 0; i < lines.length; i++) {
+              if (lines[i].includes("patient-friendly summary") || 
+                  lines[i].includes("Patient Summary") || 
+                  lines[i].includes("Patient Message")) {
+                // Take the next few lines as the patient message
+                const message = lines.slice(i+1, i+6).join('\n').trim();
+                if (message) {
+                  setPatientMessage(message);
+                  break;
+                }
+              }
+            }
+          } else {
+            // If no patient message found, set to null
+            setPatientMessage(null);
+          }
+        }
+      } catch (e) {
+        console.error("Error extracting patient message:", e);
+        setPatientMessage(null);
+      }
+    } else if (!parseError) {
+      // Reset patient message when there's no parse error
+      setPatientMessage(null);
+    }
+  }, [assessment, parseError]);
+
+  // Additional debounced logging for debugging
+  React.useEffect(() => {
+    if (assessment) {
+      console.log('AssessmentVisualization: assessment prop changed', assessment.substring(0, 50) + '...');
+    } else {
+      console.log('AssessmentVisualization: assessment prop is null');
+    }
+  }, [assessment]);
+
+  // Additional logging for state changes
+  React.useEffect(() => {
+    console.log('AssessmentVisualization: parseError state changed', parseError);
+  }, [parseError]);
+
+  React.useEffect(() => {
+    console.log('AssessmentVisualization: parsedData state changed', parsedData ? 'contains data' : 'null');
+  }, [parsedData]);
+
+  React.useEffect(() => {
+    console.log('AssessmentVisualization: patientMessage state changed', patientMessage);
+  }, [patientMessage]);
 
   if (isLoading) {
     return (
@@ -119,45 +192,6 @@ export default function AssessmentVisualization({
   }
 
   if (parseError) {
-    // Try to extract patient message from the assessment text
-    const [patientMessage, setPatientMessage] = React.useState<string | null>(null);
-    
-    React.useEffect(() => {
-      if (assessment) {
-        try {
-          // Try to find patient message using regex
-          const patientMessageRegex = /"patient":\s*"([^"]*)"/;
-          const match = assessment.match(patientMessageRegex);
-          
-          if (match && match[1]) {
-            setPatientMessage(match[1]);
-          } else {
-            // Alternative approach - look for a section that might be the patient message
-            if (assessment.includes("patient-friendly summary") || 
-                assessment.includes("Patient Summary") || 
-                assessment.includes("Patient Message")) {
-              
-              const lines = assessment.split('\n');
-              for (let i = 0; i < lines.length; i++) {
-                if (lines[i].includes("patient-friendly summary") || 
-                    lines[i].includes("Patient Summary") || 
-                    lines[i].includes("Patient Message")) {
-                  // Take the next few lines as the patient message
-                  const message = lines.slice(i+1, i+6).join('\n').trim();
-                  if (message) {
-                    setPatientMessage(message);
-                    break;
-                  }
-                }
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Error extracting patient message:", e);
-        }
-      }
-    }, [assessment]);
-
     return (
       <div className="w-full p-6 bg-white dark:bg-slate-800 rounded-lg shadow-md">
         <div className="flex items-center text-amber-500 mb-4">
@@ -205,7 +239,37 @@ export default function AssessmentVisualization({
   }
 
   if (!parsedData) {
-    return null;
+    return (
+      <div className="w-full p-6 bg-white dark:bg-slate-800 rounded-lg shadow-md">
+        <div className="flex items-center text-amber-500 mb-4">
+          <AlertTriangle className="h-5 w-5 mr-2" />
+          <h3 className="font-medium">No Assessment Data</h3>
+        </div>
+        <p className="text-slate-600 dark:text-slate-300 mb-4">
+          No assessment data is available for visualization.
+        </p>
+        
+        {assessment && (
+          <div className="mb-4">
+            <h4 className="font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Assessment Text
+            </h4>
+            <div className="bg-slate-100 dark:bg-slate-700 p-4 rounded-md text-sm max-h-[400px] overflow-y-auto">
+              <pre className="whitespace-pre-wrap font-mono text-xs">
+                {assessment}
+              </pre>
+            </div>
+          </div>
+        )}
+        
+        <button 
+          onClick={onViewFullAssessment}
+          className="text-primary hover:underline mt-2"
+        >
+          View Full Assessment
+        </button>
+      </div>
+    );
   }
 
   return (

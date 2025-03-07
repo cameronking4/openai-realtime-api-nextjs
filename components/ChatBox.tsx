@@ -81,10 +81,19 @@ function shouldDisplayMessage(msg: Conversation): boolean {
 /**
  * Single conversation item with enhanced styling for therapeutic conversations
  */
-function ConversationItem({ message }: { message: Conversation }) {
+function ConversationItem({ 
+  message, 
+  onSendMessage 
+}: { 
+  message: Conversation;
+  onSendMessage: (text: string) => void;
+}) {
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
   const msgStatus = message.status;
+  
+  // Add a console log to track rendering
+  console.log(`ConversationItem rendering: ${message.id}, role: ${message.role}, status: ${message.status}, isFinal: ${message.isFinal}`);
 
   return (
     <motion.div
@@ -137,10 +146,11 @@ function ConversationItem({ message }: { message: Conversation }) {
 
 interface ChatBoxProps {
   conversation: Conversation[];
+  onSendMessage?: (text: string) => void;
   children?: React.ReactNode; // For RealtimeBlock or other components
 }
 
-export default function ChatBox({ conversation, children }: ChatBoxProps) {
+export default function ChatBox({ conversation, onSendMessage, children }: ChatBoxProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const { t } = useTranslations();
 
@@ -156,6 +166,18 @@ export default function ChatBox({ conversation, children }: ChatBoxProps) {
     return conversation.filter(shouldDisplayMessage);
   }, [conversation]);
 
+  // Default handler for sending messages if none provided
+  const handleSendMessage = React.useCallback((text: string) => {
+    if (onSendMessage) {
+      onSendMessage(text);
+    } else {
+      console.warn('No onSendMessage handler provided to ChatBox');
+    }
+  }, [onSendMessage]);
+
+  // Add a console log to track conversation updates
+  console.log(`ChatBox rendering with ${displayableMessages.length} messages`);
+
   return (
     <div className="flex flex-col w-full h-[70vh] mx-auto bg-background rounded-lg shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700 dark:bg-background">
       {/* Header */}
@@ -164,7 +186,7 @@ export default function ChatBox({ conversation, children }: ChatBoxProps) {
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
           </svg>
-          {t('transcriber.title') || 'Psycho-Oncology Assessment'}
+          {t('transcriber.title') || 'Live AI Healing Session'}
         </div>
       </div>
 
@@ -173,14 +195,18 @@ export default function ChatBox({ conversation, children }: ChatBoxProps) {
         ref={scrollRef}
         className="flex-1 h-full overflow-y-auto p-6 space-y-2 bg-slate-50 dark:bg-slate-900"
       >
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {displayableMessages.length === 0 ? (
             <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-500">
               <p>Your conversation will appear here</p>
             </div>
           ) : (
             displayableMessages.map((message) => (
-              <ConversationItem key={message.id} message={message} />
+              <ConversationItem 
+                key={message.id} 
+                message={message} 
+                onSendMessage={handleSendMessage}
+              />
             ))
           )}
         </AnimatePresence>

@@ -1,0 +1,12 @@
+{
+  "id": "transcript_1741299997099",
+  "sessionId": "session_1741299997098",
+  "createdAt": "2025-03-06T22:26:37.099Z",
+  "content": "[5:25 PM] Eve: Hello, and welcome! I'm Eve, your AI assistant. I'm here to help with assessing your wellbeing as part of your cancer care. Regular check-ins like this are important for your healing process. Shall we begin? How have you been feeling about your treatment lately?\n\n[5:25 PM] Patient: No, let's talk about something else\n\n[5:25 PM] Eve: I understand that this might not be easy to discuss, but it's important for your wellbeing. Let's focus on your current feelings about your treatment, and we'll take it from there. How have things been going for you?\n\n",
+  "metadata": {
+    "messageCount": 3,
+    "userMessageCount": 1,
+    "assistantMessageCount": 2,
+    "duration": 7
+  }
+}

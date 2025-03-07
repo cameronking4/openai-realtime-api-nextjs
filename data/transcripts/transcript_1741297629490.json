@@ -1,0 +1,12 @@
+{
+  "id": "transcript_1741297629490",
+  "sessionId": "session_1741297629489",
+  "createdAt": "2025-03-06T21:47:09.490Z",
+  "content": "[4:46 PM] Eve: Hello and welcome! I'm Eve, your AI assistant. I'm here to support you through a psycho-oncology assessment, which helps us understand your mental wellbeing as you navigate your cancer journey. It's an important part of your healing process. Shall we begin?\n\n[4:47 PM] Patient: My family has been very supportive during this difficult time\n\n[4:47 PM] Eve: It's wonderful to hear that your family has been a strong support for you. Having a supportive network can make a big difference. Let's talk a bit more about your experience. How have you been feeling about your treatment lately?\n\n[4:47 PM] Patient: I'm struggling with fatigue most days\n\n[4:47 PM] Eve: I'm sorry to hear that fatigue has been a challenge for you. It's a common side effect and can be tough to manage. How has this impacted your mood and daily activities?\n\n",
+  "metadata": {
+    "messageCount": 5,
+    "userMessageCount": 2,
+    "assistantMessageCount": 3,
+    "duration": 14
+  }
+}

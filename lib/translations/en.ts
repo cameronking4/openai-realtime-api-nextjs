@@ -114,7 +114,7 @@ export const en = {
         }
     },
     transcriber: {
-        title: "Live Transcript"
+        title: "Live AI Healing Session"
     },
     voice: {
         select: "Select a voice",
