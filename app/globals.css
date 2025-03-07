@@ -16,6 +16,23 @@ html {
   animation: pulse 1s infinite;
 }
 
+/* Shimmer effect for loading placeholders */
+.shimmer-effect {
+  animation: shimmer 1.5s infinite;
+  transform: skewX(-20deg);
+  background-size: 200% 100%;
+  background-position: -100% 0;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(200%) skewX(-20deg);
+  }
+}
+
 @keyframes pulse {
   0% {
     opacity: 1;

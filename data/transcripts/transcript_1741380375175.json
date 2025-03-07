@@ -1,0 +1,12 @@
+{
+  "id": "transcript_1741380375175",
+  "sessionId": "session_1741380375174",
+  "createdAt": "2025-03-07T20:46:15.175Z",
+  "content": "[3:46 PM] Eve: Hello, and welcome! I'm Eve, your AI assistant. I'm here to help with a psycho-oncology assessment to understand how you're feeling and coping through your treatment. Regular check-ins like this are important for your healing process. Let's get started, shall we? How have you been feeling about your treatment lately?\n\n[3:46 PM] Patient: Absolutely exhausted, not sure I can continue.\n\n[3:46 PM] Eve: I'm really sorry to hear that you're feeling so exhausted. It's completely understandable to feel overwhelmed. Can you tell me more about what's been the most challenging aspect for you recently?\n\n",
+  "metadata": {
+    "messageCount": 3,
+    "userMessageCount": 1,
+    "assistantMessageCount": 2,
+    "duration": 7
+  }
+}

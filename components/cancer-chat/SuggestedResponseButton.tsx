@@ -71,29 +71,47 @@ export function SuggestedResponseButton({
         "relative overflow-hidden", // For loading animation
         getVariantStyles(),
         isActive ? "ring-2 ring-cancer-accent border-cancer-accent" : "",
-        disabled ? "opacity-70 border-gray-400 cursor-not-allowed" : "",
+        disabled && !isLoading ? "opacity-70 border-gray-400 cursor-not-allowed" : "",
         className
       )}
       aria-label={`Suggested response: ${text}`}
     >
-      {/* Loading animation overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-          <div className="flex space-x-1">
-            <div className="w-1.5 h-1.5 bg-cancer-accent rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-            <div className="w-1.5 h-1.5 bg-cancer-accent rounded-full animate-bounce" style={{ animationDelay: "100ms" }}></div>
-            <div className="w-1.5 h-1.5 bg-cancer-accent rounded-full animate-bounce" style={{ animationDelay: "200ms" }}></div>
+      {/* Content container */}
+      <div className="relative">
+        {/* Actual text content - hidden when loading */}
+        <span className={cn(
+          "block",
+          isLoading ? "invisible" : "",
+          disabled && !isLoading ? "italic text-gray-500" : ""
+        )}>
+          {text}
+        </span>
+        
+        {/* Google-style text placeholder - only shown when loading */}
+        {isLoading && (
+          <div className="absolute inset-0">
+            {/* Create multiple lines of placeholder with different widths */}
+            <div className="flex flex-col gap-1.5">
+              {/* First line - longer */}
+              <div className="h-3 bg-gray-200 rounded w-[85%] relative overflow-hidden">
+                <div className="shimmer-effect absolute inset-0"></div>
+              </div>
+              
+              {/* Second line - shorter */}
+              <div className="h-3 bg-gray-200 rounded w-[65%] relative overflow-hidden">
+                <div className="shimmer-effect absolute inset-0"></div>
+              </div>
+              
+              {/* For longer text, add a third very short line */}
+              {text.length > 30 && (
+                <div className="h-3 bg-gray-200 rounded w-[40%] relative overflow-hidden">
+                  <div className="shimmer-effect absolute inset-0"></div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-      
-      {/* Button text with italic styling for placeholders */}
-      <span className={cn(
-        isLoading ? "opacity-20" : "",
-        disabled && !isLoading ? "italic text-gray-500" : ""
-      )}>
-        {text}
-      </span>
+        )}
+      </div>
     </motion.button>
   );
 } 

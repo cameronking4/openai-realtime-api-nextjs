@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { FileText, Download, Settings } from "lucide-react";
 import TranscriptModal from "@/components/transcript-modal";
 import { generateTranscript, Transcript } from "@/lib/transcript-service";
+import AssessmentVisualization from "@/components/assessment-visualization";
+import AssessmentModal from "@/components/assessment-modal";
 
 interface CancerChatInterfaceProps {
   conversation: Conversation[];
@@ -92,6 +94,10 @@ export function CancerChatInterface({
   // Post-session UI state
   const [isTranscriptModalOpen, setIsTranscriptModalOpen] = useState(false);
   const [transcript, setTranscript] = useState<Transcript | null>(null);
+  const [assessment, setAssessment] = useState<string | null>(null);
+  const [assessmentLoading, setAssessmentLoading] = useState(false);
+  const [assessmentError, setAssessmentError] = useState<string | null>(null);
+  const [isFullAssessmentOpen, setIsFullAssessmentOpen] = useState(false);
 
   // Get the last assistant message for generating suggestions
   const lastAssistantMessage = useMemo(() => {
@@ -248,47 +254,57 @@ export function CancerChatInterface({
     document.body.removeChild(element);
   };
 
-  // Render post-session actions
-  const renderPostSessionActions = () => {
-    return (
-      <div className="mt-6 flex flex-col items-center gap-4">
-        <h3 className="font-medium text-lg text-center">Your session has ended</h3>
-        <p className="text-center text-muted-foreground mb-2">
-          Thank you for sharing your journey with us. You can view or download your conversation transcript.
-        </p>
-        <div className="flex flex-wrap justify-center gap-3">
-          <Button
-            onClick={handleViewTranscript}
-            className="bg-cancer-accent hover:bg-cancer-accent/90 text-white font-medium px-6 py-2 rounded-full flex items-center gap-2"
-          >
-            <FileText size={16} />
-            View Transcript
-          </Button>
-          <Button
-            onClick={handleDownloadTranscript}
-            variant="outline"
-            className="border-cancer-subtle text-cancer-text hover:bg-gray-100 flex items-center gap-2 font-medium px-6 py-2 rounded-full"
-          >
-            <Download size={16} />
-            Download Transcript
-          </Button>
-          <Button
-            onClick={onStartSession}
-            className="bg-cancer-active hover:bg-cancer-active/90 text-white font-medium px-6 py-2 rounded-full"
-          >
-            Start New Session
-          </Button>
-        </div>
-      </div>
-    );
+  // Generate assessment from transcript
+  const handleGenerateAssessment = async () => {
+    if (conversation.length < 2) {
+      setAssessmentError('Conversation needs at least one exchange before generating an assessment');
+      return;
+    }
+    
+    setAssessmentLoading(true);
+    setAssessmentError(null);
+    
+    try {
+      // Get the transcript content
+      const transcriptContent = conversation.map(item => 
+        `${item.role.toUpperCase()}: ${item.text}`
+      ).join('\n\n');
+      
+      console.log("Generating assessment for transcript...");
+      
+      // Call the assessment API
+      const response = await fetch('/api/assessment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ transcript: transcriptContent }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success || !data.assessment) {
+        throw new Error('Invalid response from assessment API');
+      }
+      
+      console.log("Received assessment data");
+      setAssessment(data.assessment);
+    } catch (error) {
+      console.error("Error generating assessment:", error);
+      setAssessmentError(error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setAssessmentLoading(false);
+    }
   };
 
-  // Check if there's at least one AI message that can be displayed
-  const hasAIMessage = useMemo(() => {
-    return conversation.some(msg => 
-      msg.role === "assistant" && msg.isFinal && msg.text.trim().length > 0
-    );
-  }, [conversation]);
+  // View full assessment
+  const handleViewFullAssessment = () => {
+    setIsFullAssessmentOpen(true);
+  };
 
   // Input Section with RealtimeBlock for voice mode - only shown when session is active and AI has responded
   const renderInputSection = () => {
@@ -388,6 +404,13 @@ export function CancerChatInterface({
     );
   };
 
+  // Check if there's at least one AI message that can be displayed
+  const hasAIMessage = useMemo(() => {
+    return conversation.some(msg => 
+      msg.role === "assistant" && msg.isFinal && msg.text.trim().length > 0
+    );
+  }, [conversation]);
+
   return (
     <div 
       className={cn(
@@ -486,6 +509,89 @@ export function CancerChatInterface({
                     {customPreSessionContent}
                   </div>
                 </motion.div>
+              ) : sessionState === "post" ? (
+                <motion.div
+                  key="post-session"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex flex-col items-center justify-center min-h-[400px] relative z-20"
+                >
+                  <div className="max-w-xl mx-auto text-center space-y-6 bg-transparent p-6">
+                    <h2 className="text-2xl font-semibold text-cancer-text bg-transparent inline-block px-4 py-2">
+                      Session Complete
+                    </h2>
+
+                    {/* AI Avatar Image below the title */}
+                    <div className="flex justify-center my-4">
+                      <Image
+                        src="/ai-avatar.png"
+                        alt="AI Therapist"
+                        width={120}
+                        height={120}
+                        className="rounded-full shadow-md object-cover object-center"
+                        priority
+                      />
+                    </div>
+                    
+                    <p className="text-cancer-text text-base bg-transparent px-4 py-2 inline-block">
+                      Thank you for sharing your journey with us. Your responses have been recorded.
+                    </p>
+                    
+                    {/* Transcript and Assessment Actions */}
+                    <div className="flex flex-wrap justify-center gap-3 mt-4">
+                      <Button
+                        onClick={handleViewTranscript}
+                        className="bg-cancer-accent hover:bg-cancer-accent/90 text-white font-medium px-6 py-2 rounded-full flex items-center gap-2"
+                      >
+                        <FileText size={16} />
+                        View Transcript
+                      </Button>
+                      <Button
+                        onClick={handleGenerateAssessment}
+                        disabled={assessmentLoading}
+                        className="bg-cancer-active hover:bg-cancer-active/90 text-white font-medium px-6 py-2 rounded-full flex items-center gap-2"
+                      >
+                        {assessmentLoading ? 'Generating...' : (assessment ? 'Regenerate Assessment' : 'Generate Assessment')}
+                      </Button>
+                    </div>
+                    
+                    {/* Assessment Visualization */}
+                    {assessment && !assessmentLoading && (
+                      <div className="mt-6 w-full">
+                        <AssessmentVisualization
+                          assessment={assessment}
+                          isLoading={false}
+                          onViewFullAssessment={handleViewFullAssessment}
+                        />
+                      </div>
+                    )}
+                    
+                    {assessmentLoading && (
+                      <div className="flex flex-col items-center justify-center py-6 mt-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cancer-active"></div>
+                        <p className="mt-4 text-sm text-gray-600">
+                          Generating psychological assessment...
+                        </p>
+                      </div>
+                    )}
+                    
+                    {assessmentError && (
+                      <div className="p-4 bg-red-50 text-red-800 rounded-md mt-4 text-sm">
+                        <p>{assessmentError}</p>
+                      </div>
+                    )}
+                    
+                    {/* Start New Session Button */}
+                    <Button
+                      onClick={onStartSession}
+                      className="bg-cancer-active hover:bg-cancer-active/90 text-white font-medium px-6 py-2 rounded-full mt-6"
+                    >
+                      Start New Session
+                    </Button>
+                  </div>
+                </motion.div>
               ) : displayableMessages.length > 0 ? (
                 <motion.div
                   key="active-session"
@@ -513,20 +619,25 @@ export function CancerChatInterface({
 
         {/* Render Input Section if session is active and has AI message */}
         {renderInputSection()}
-        
-        {/* Post-session UI */}
-        {sessionState === "post" && renderPostSessionActions()}
       </div>
       
       {/* Audio settings button in the right bottom corner */}
       <AudioSettings isActive={sessionState === "active" && isVoiceActive} />
       
       {/* Transcript Modal */}
-      {isTranscriptModalOpen && transcript && (
-        <TranscriptModal
-          transcript={transcript}
-          isOpen={isTranscriptModalOpen}
-          onClose={() => setIsTranscriptModalOpen(false)}
+      <TranscriptModal
+        transcript={transcript}
+        isOpen={isTranscriptModalOpen}
+        onClose={() => setIsTranscriptModalOpen(false)}
+      />
+      
+      {/* Assessment Modal */}
+      {assessment && (
+        <AssessmentModal
+          assessment={assessment}
+          isOpen={isFullAssessmentOpen}
+          onClose={() => setIsFullAssessmentOpen(false)}
+          isLoading={assessmentLoading}
         />
       )}
     </div>

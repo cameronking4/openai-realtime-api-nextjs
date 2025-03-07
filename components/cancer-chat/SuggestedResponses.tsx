@@ -25,6 +25,10 @@ export function SuggestedResponses({
 }: SuggestedResponsesProps) {
   // Track loading state for all buttons
   const [isLoading, setIsLoading] = useState(false);
+  // Track if we've sent a message and are waiting for a response
+  const [waitingForResponse, setWaitingForResponse] = useState(false);
+  // Track the last conversation length to detect new messages
+  const [lastConversationLength, setLastConversationLength] = useState(0);
   
   // Determine if we should show placeholder buttons
   const showPlaceholders = suggestions.length === 0 || suggestions.every(s => !s.trim());
@@ -68,43 +72,67 @@ export function SuggestedResponses({
     }
   };
 
-  // Reset loading state when new messages arrive in the conversation
+  // Monitor conversation changes to detect new messages
   useEffect(() => {
-    if (conversation && conversation.length > 0 && isLoading) {
-      // If we're loading and a new message arrives, clear the loading state
-      setIsLoading(false);
+    // Check if conversation length has increased
+    if (conversation.length > lastConversationLength) {
+      // New message received, update state
+      setLastConversationLength(conversation.length);
+      
+      // If we were waiting for a response, we got it
+      if (waitingForResponse) {
+        // Clear loading and waiting states
+        setIsLoading(false);
+        setWaitingForResponse(false);
+      }
+    } else {
+      // Just update the length tracker
+      setLastConversationLength(conversation.length);
     }
-  }, [conversation, isLoading]);
+  }, [conversation, lastConversationLength, waitingForResponse]);
 
   // Handle suggestion click with loading state
   const handleSuggestionClick = (suggestion: string) => {
     // Don't do anything if showing placeholders
     if (showPlaceholders) return;
     
+    // Set loading state for buttons
     setIsLoading(true);
+    // Set waiting state to track that we're expecting a response
+    setWaitingForResponse(true);
     
     // Call the actual handler
     onSuggestionClick(suggestion);
   };
 
   return (
-    <div
-      className={cn(
-        "w-full grid grid-cols-1 sm:grid-cols-2 gap-3",
-        className
+    <div className="space-y-3">
+      {/* Loading message to explain what's happening */}
+      {isLoading && waitingForResponse && (
+        <div className="text-center text-sm text-gray-500 mb-2 animate-pulse">
+          Waiting for response... New suggestions will appear soon
+        </div>
       )}
-      aria-label="Suggested responses"
-    >
-      {displayedSuggestions.map((suggestion, index) => (
-        <SuggestedResponseButton
-          key={`suggestion-${index}`}
-          text={suggestion}
-          onClick={() => handleSuggestionClick(suggestion)}
-          disabled={disabled || isLoading || showPlaceholders}
-          variant={getButtonVariant(source, index)}
-          isLoading={isLoading && !showPlaceholders}
-        />
-      ))}
+      
+      {/* Suggestion buttons grid */}
+      <div
+        className={cn(
+          "w-full grid grid-cols-1 sm:grid-cols-2 gap-3",
+          className
+        )}
+        aria-label="Suggested responses"
+      >
+        {displayedSuggestions.map((suggestion, index) => (
+          <SuggestedResponseButton
+            key={`suggestion-${index}`}
+            text={suggestion}
+            onClick={() => handleSuggestionClick(suggestion)}
+            disabled={disabled || (isLoading && waitingForResponse) || showPlaceholders}
+            variant={getButtonVariant(source, index)}
+            isLoading={isLoading && waitingForResponse}
+          />
+        ))}
+      </div>
     </div>
   );
 } 
