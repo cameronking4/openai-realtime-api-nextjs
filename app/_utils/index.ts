@@ -5,8 +5,48 @@
  * Functions are organized by their domain.
  */
 
+// Add a logging utility to control verbosity
+export const LogLevel = {
+  ERROR: 0,
+  WARN: 1,
+  INFO: 2,
+  DEBUG: 3,
+  VERBOSE: 4
+};
+
+// Set the current log level - adjust this to control verbosity
+const currentLogLevel = LogLevel.INFO; // Default to INFO level
+
+export const logger = {
+  error: (message: string, ...args: any[]) => {
+    if (currentLogLevel >= LogLevel.ERROR) {
+      console.error(message, ...args);
+    }
+  },
+  warn: (message: string, ...args: any[]) => {
+    if (currentLogLevel >= LogLevel.WARN) {
+      console.warn(message, ...args);
+    }
+  },
+  info: (message: string, ...args: any[]) => {
+    if (currentLogLevel >= LogLevel.INFO) {
+      console.log(message, ...args);
+    }
+  },
+  debug: (message: string, ...args: any[]) => {
+    if (currentLogLevel >= LogLevel.DEBUG) {
+      console.log(`[DEBUG] ${message}`, ...args);
+    }
+  },
+  verbose: (message: string, ...args: any[]) => {
+    if (currentLogLevel >= LogLevel.VERBOSE) {
+      console.log(`[VERBOSE] ${message}`, ...args);
+    }
+  }
+};
+
 // Re-export utils from other files
-export * from '../@/app/_lib/utils';
+export * from '@/app/_lib/utils';
 
 // Date and time utilities
 export function formatDate(date: Date | string): string {

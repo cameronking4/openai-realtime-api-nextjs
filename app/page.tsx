@@ -11,6 +11,7 @@ import { useVoiceContext } from "@/app/_contexts/voice-context";
 import { tools } from "@/app/_lib/tools";
 import { generateTranscript, saveTranscript, Transcript } from "@/app/_lib/transcript-service";
 import { Button } from "@/app/_components/ui/button";
+import { logger } from '@/app/_utils';
 
 export default function CancerChatPage() {
   // Session state
@@ -137,15 +138,17 @@ export default function CancerChatPage() {
     
     // If connecting state is active, set a safety timeout to clear it after a maximum time
     if (isConnecting) {
-      console.log("Setting safety timeout for connecting state");
+      logger.debug("Setting safety timeout for connecting state");
       safetyTimer = setTimeout(() => {
-        console.log("Safety timeout triggered - clearing connecting state");
-        setIsConnecting(false);
-        setConnectionStatus("Session ready");
-      }, 8000); // 8 seconds max wait time (reduced from 10 for faster response)
+        // Only clear if still connecting after timeout
+        if (isConnecting) {
+          logger.warn("Safety timeout triggered - clearing connecting state");
+          setIsConnecting(false);
+          setConnectionStatus("Session ready");
+        }
+      }, 15000); // 15 seconds max wait time
     }
     
-    // Cleanup timer when component unmounts or connecting state changes
     return () => {
       if (safetyTimer) {
         clearTimeout(safetyTimer);

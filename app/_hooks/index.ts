@@ -6,11 +6,11 @@
  */
 
 // UI hooks
-export { useToast, toast } from '../@/app/_hooks/use-toast';
-export { useIsMobile } from '../@/app/_hooks/use-mobile';
+export { useToast, toast } from '@/app/_hooks/use-toast';
+export { useIsMobile } from '@/app/_hooks/use-mobile';
 
 // Feature-specific hooks
-export { default as useWebRTCAudioSession } from '../@/app/_hooks/use-webrtc';
+export { default as useWebRTCAudioSession } from '@/app/_hooks/use-webrtc';
 
 // Utility hooks
-export { useToolsFunctions } from '../@/app/_hooks/use-tools'; 
+export { useToolsFunctions } from '@/app/_hooks/use-tools'; 

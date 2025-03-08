@@ -102,8 +102,16 @@ const RealtimeBlock: React.FC<{
 
   // Return compact version (just the button) if compact=true
   if (compact) {
-    // Log for debugging
-    console.log(`RealtimeBlock (compact): voice=${voice}, isSessionActive=${isSessionActive}`);
+    // Only log when state changes to reduce noise
+    const stateRef = useRef({ voice, isSessionActive });
+    
+    useEffect(() => {
+      // Only log if there's an actual state change
+      if (stateRef.current.voice !== voice || stateRef.current.isSessionActive !== isSessionActive) {
+        console.log(`RealtimeBlock state changed: voice=${voice}, isSessionActive=${isSessionActive}`);
+        stateRef.current = { voice, isSessionActive };
+      }
+    }, [voice, isSessionActive]);
     
     return (
       <button

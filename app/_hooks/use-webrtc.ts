@@ -4,6 +4,16 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Conversation } from "@/app/_lib/conversations";
 import { useTranslations } from "@/app/_components/shared/translations-context";
+import { logger } from '@/app/_utils';
+
+// Add debounce utility
+const debounce = (func: Function, wait: number) => {
+  let timeout: NodeJS.Timeout | null = null;
+  return (...args: any[]) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
 
 export interface Tool {
   name: string;
@@ -43,6 +53,9 @@ interface UseWebRTCAudioSessionReturn {
   audioProcessingEnabled: boolean;
   setAudioProcessingEnabled: (enabled: boolean) => void;
 }
+
+// Add a connection state enum for better state management
+type ConnectionState = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'failed';
 
 /**
  * Hook to manage a real-time session with OpenAI's Realtime endpoints.
@@ -97,6 +110,224 @@ export default function useWebRTCAudioSession(
   
   // State for audio processing enabled/disabled
   const [audioProcessingEnabled, setAudioProcessingEnabled] = useState<boolean>(false); // Disabled by default
+
+  // Add token cache at the top of the hook
+  const tokenCacheRef = useRef<{
+    token: string | null;
+    modality: Modality | null;
+    expiresAt: number | null;
+    fetchPromise: Promise<string> | null;
+  }>({
+    token: null,
+    modality: null,
+    expiresAt: null,
+    fetchPromise: null,
+  });
+
+  // Token expiration time in milliseconds (5 minutes)
+  const TOKEN_EXPIRATION_MS = 5 * 60 * 1000;
+
+  // Add a connection state enum for better state management
+  const [connectionState, setConnectionState] = useState<ConnectionState>('idle');
+  
+  // Track connection attempts to implement exponential backoff
+  const connectionAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 3;
+  
+  // Add a connection lock to prevent multiple simultaneous connection attempts
+  const connectionLockRef = useRef(false);
+  
+  // Add a last state change timestamp to prevent rapid state changes
+  const lastStateChangeRef = useRef(Date.now());
+  const STATE_CHANGE_THRESHOLD_MS = 1000; // Minimum 1 second between state changes
+  
+  // Function to get backoff delay based on attempts
+  const getBackoffDelay = () => {
+    return Math.min(1000 * Math.pow(2, connectionAttemptsRef.current), 10000); // Max 10 seconds
+  };
+
+  // Reset connection attempts when successfully connected
+  useEffect(() => {
+    if (connectionState === 'connected') {
+      connectionAttemptsRef.current = 0;
+      connectionLockRef.current = false;
+    }
+  }, [connectionState]);
+  
+  // Improved state setter with debouncing and locking
+  const setConnectionStateWithDebounce = useCallback((newState: ConnectionState) => {
+    const now = Date.now();
+    
+    // Don't allow rapid state changes (except for 'connected' state which should be immediate)
+    if (newState !== 'connected' && 
+        now - lastStateChangeRef.current < STATE_CHANGE_THRESHOLD_MS) {
+      logger.debug(`Ignoring rapid state change to ${newState}, too soon after last change`);
+      return;
+    }
+    
+    // Update the timestamp
+    lastStateChangeRef.current = now;
+    
+    // Set the new state
+    setConnectionState(newState);
+    
+    // Log state change (but not for every state to reduce noise)
+    if (newState !== 'connecting') {
+      logger.info(`Connection state changed to: ${newState}`);
+    }
+  }, []);
+
+  // Update status based on connection state
+  useEffect(() => {
+    switch (connectionState) {
+      case 'idle':
+        setStatus('');
+        break;
+      case 'connecting':
+        setStatus('connecting');
+        break;
+      case 'connected':
+        setStatus('connected');
+        setIsSessionActive(true);
+        break;
+      case 'reconnecting':
+        setStatus('reconnecting');
+        break;
+      case 'disconnected':
+        setStatus('disconnected');
+        break;
+      case 'failed':
+        setStatus('connection_failed');
+        break;
+    }
+  }, [connectionState]);
+
+  // Prefetch token in the background
+  const prefetchToken = useCallback(async (modality: Modality) => {
+    try {
+      // Don't prefetch if we already have a valid token for this modality
+      if (
+        tokenCacheRef.current.token &&
+        tokenCacheRef.current.modality === modality &&
+        tokenCacheRef.current.expiresAt &&
+        Date.now() < tokenCacheRef.current.expiresAt
+      ) {
+        return;
+      }
+
+      // Don't prefetch if we're already fetching
+      if (tokenCacheRef.current.fetchPromise) {
+        return;
+      }
+
+      logger.debug(`Prefetching token for modality: ${modality}`);
+      tokenCacheRef.current.fetchPromise = fetchTokenFromAPI(modality);
+      const token = await tokenCacheRef.current.fetchPromise;
+      
+      // Update the cache
+      tokenCacheRef.current.token = token;
+      tokenCacheRef.current.modality = modality;
+      tokenCacheRef.current.expiresAt = Date.now() + TOKEN_EXPIRATION_MS;
+      tokenCacheRef.current.fetchPromise = null;
+      
+      logger.debug(`Token prefetched and cached for ${modality}`);
+    } catch (error) {
+      logger.error("Error prefetching token:", error);
+      tokenCacheRef.current.fetchPromise = null;
+    }
+  }, []);
+
+  // Actual API call to fetch token
+  async function fetchTokenFromAPI(modality: Modality): Promise<string> {
+    logger.debug(`Requesting ephemeral token for modality: ${modality}`);
+    const response = await fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ modality }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(`Failed to get ephemeral token: ${response.status} - ${errorText}`);
+      
+      // Check for network connectivity issues
+      if (errorText.includes("ENOTFOUND") || errorText.includes("getaddrinfo")) {
+        setStatus("Network connectivity issue: Cannot reach OpenAI API. Please check your internet connection.");
+        throw new Error("Network connectivity issue: Cannot reach OpenAI API");
+      }
+      
+      throw new Error(`Failed to get ephemeral token: ${response.status} - ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.client_secret?.value) {
+      logger.error("Received token data:", JSON.stringify(data).substring(0, 200));
+      
+      // Check if there's an error message in the response
+      if (data.error) {
+        setStatus(`Error: ${data.error}`);
+        throw new Error(`Invalid token response: ${data.error}`);
+      }
+      
+      throw new Error("Invalid token response - missing client_secret.value");
+    }
+    
+    logger.debug(`Successfully obtained ephemeral token for ${modality} session`);
+    return data.client_secret.value;
+  }
+
+  // Modified getEphemeralToken to use cache
+  async function getEphemeralToken(modality: Modality = currentModality) {
+    try {
+      // Check if we have a valid cached token for this modality
+      if (
+        tokenCacheRef.current.token &&
+        tokenCacheRef.current.modality === modality &&
+        tokenCacheRef.current.expiresAt &&
+        Date.now() < tokenCacheRef.current.expiresAt
+      ) {
+        logger.debug(`Using cached token for ${modality}`);
+        return tokenCacheRef.current.token;
+      }
+
+      // If there's an ongoing fetch, wait for it
+      if (tokenCacheRef.current.fetchPromise) {
+        logger.debug(`Waiting for ongoing token fetch for ${modality}`);
+        const token = await tokenCacheRef.current.fetchPromise;
+        return token;
+      }
+
+      // Fetch a new token
+      tokenCacheRef.current.fetchPromise = fetchTokenFromAPI(modality);
+      const token = await tokenCacheRef.current.fetchPromise;
+      
+      // Update the cache
+      tokenCacheRef.current.token = token;
+      tokenCacheRef.current.modality = modality;
+      tokenCacheRef.current.expiresAt = Date.now() + TOKEN_EXPIRATION_MS;
+      tokenCacheRef.current.fetchPromise = null;
+      
+      return token;
+    } catch (err: unknown) {
+      logger.error("getEphemeralToken error:", err);
+      tokenCacheRef.current.fetchPromise = null;
+      
+      // Set a user-friendly error message
+      if (err instanceof Error && err.message.includes("Network connectivity")) {
+        setStatus("Network connectivity issue: Cannot reach OpenAI API. Please check your internet connection.");
+      } else {
+        setStatus(`Error getting token: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      
+      throw err;
+    }
+  }
+
+  // Prefetch token when modality changes
+  useEffect(() => {
+    prefetchToken(currentModality);
+  }, [currentModality, prefetchToken]);
 
   // Custom setter for gate threshold that also updates the gate node
   const setGateThreshold = useCallback((threshold: number) => {
@@ -486,146 +717,71 @@ export default function useWebRTCAudioSession(
   async function handleDataChannelMessage(event: MessageEvent) {
     try {
       const msg = JSON.parse(event.data);
-      // console.log("Incoming dataChannel message:", msg);
-
+      
       switch (msg.type) {
-        /**
-         * User speech started
-         */
-        case "input_audio_buffer.speech_started": {
-          getOrCreateEphemeralUserId();
-          updateEphemeralUserMessage({ status: "speaking" });
-          break;
-        }
-
-        /**
-         * User speech stopped
-         */
-        case "input_audio_buffer.speech_stopped": {
-          // optional: you could set "stopped" or just keep "speaking"
-          updateEphemeralUserMessage({ status: "speaking" });
-          break;
-        }
-
-        /**
-         * Audio buffer committed => "Processing speech..."
-         */
-        case "input_audio_buffer.committed": {
-          updateEphemeralUserMessage({
-            text: "Processing speech...",
-            status: "processing",
-          });
-          break;
-        }
-
-        /**
-         * Partial user transcription
-         */
-        case "conversation.item.input_audio_transcription": {
-          const partialText =
-            msg.transcript ?? msg.text ?? "User is speaking...";
-          updateEphemeralUserMessage({
-            text: partialText,
-            status: "speaking",
-            isFinal: false,
-          });
-          break;
-        }
-
-        /**
-         * Final user transcription
-         */
-        case "conversation.item.input_audio_transcription.completed": {
-          // console.log("Final user transcription:", msg.transcript);
-          updateEphemeralUserMessage({
-            text: msg.transcript || "",
-            isFinal: true,
-            status: "final",
-          });
-          clearEphemeralUserMessage();
-          break;
-        }
-
-        /**
-         * Streaming AI transcripts (assistant partial) - for audio responses
-         */
-        case "response.audio_transcript.delta": {
-          const newMessage: Conversation = {
-            id: uuidv4(), // generate a fresh ID for each assistant partial
-            role: "assistant",
-            text: msg.delta,
-            timestamp: new Date().toISOString(),
-            isFinal: false,
-          };
-
-          setConversation((prev) => {
-            const lastMsg = prev[prev.length - 1];
-            if (lastMsg && lastMsg.role === "assistant" && !lastMsg.isFinal) {
-              // Append to existing assistant partial
-              const updated = [...prev];
-              updated[updated.length - 1] = {
-                ...lastMsg,
-                text: lastMsg.text + msg.delta,
-              };
-              return updated;
+        case "response.content_part.added": {
+          // Handle text deltas
+          if (msg.content_part && msg.content_part.type === "text") {
+            const text = msg.content_part.text;
+            logger.debug("Received text delta:", text);
+            
+            // Update conversation with the text delta
+            const existingConversation = [...conversation];
+            const lastMessage = existingConversation[existingConversation.length - 1];
+            
+            if (lastMessage && lastMessage.role === "assistant" && !lastMessage.isFinal) {
+              // Append to existing message
+              lastMessage.text += text;
+              setConversation(existingConversation);
             } else {
-              // Start a new assistant partial
-              return [...prev, newMessage];
+              // Create a new message
+              setConversation([
+                ...existingConversation,
+                { 
+                  role: "assistant", 
+                  text: text, 
+                  id: uuidv4(),
+                  timestamp: new Date().toISOString(),
+                  isFinal: false
+                },
+              ]);
             }
-          });
+          }
           break;
         }
-
-        /**
-         * Mark the last assistant message as final - for audio responses
-         */
-        case "response.audio_transcript.done": {
-          setConversation((prev) => {
-            if (prev.length === 0) return prev;
-            const updated = [...prev];
-            updated[updated.length - 1].isFinal = true;
-            return updated;
-          });
-          break;
-        }
-
-        /**
-         * Streaming text responses (assistant partial) - for text-only mode
-         */
+        
+        // Handle text deltas in text-only mode
         case "response.text.delta": {
-          console.log("Received text delta:", msg.delta);
+          const text = msg.delta;
+          logger.debug("Received text delta:", text);
           
-          const newMessage: Conversation = {
-            id: uuidv4(), // generate a fresh ID for each assistant partial
-            role: "assistant",
-            text: msg.delta,
-            timestamp: new Date().toISOString(),
-            isFinal: false,
-          };
-
-          setConversation((prev) => {
-            const lastMsg = prev[prev.length - 1];
-            if (lastMsg && lastMsg.role === "assistant" && !lastMsg.isFinal) {
-              // Append to existing assistant partial
-              const updated = [...prev];
-              updated[updated.length - 1] = {
-                ...lastMsg,
-                text: lastMsg.text + msg.delta,
-              };
-              return updated;
-            } else {
-              // Start a new assistant partial
-              return [...prev, newMessage];
-            }
-          });
+          // Update conversation with the text delta
+          const existingConversation = [...conversation];
+          const lastMessage = existingConversation[existingConversation.length - 1];
+          
+          if (lastMessage && lastMessage.role === "assistant" && !lastMessage.isFinal) {
+            // Append to existing message
+            lastMessage.text += text;
+            setConversation(existingConversation);
+          } else {
+            // Create a new message
+            setConversation([
+              ...existingConversation,
+              { 
+                role: "assistant", 
+                text: text, 
+                id: uuidv4(),
+                timestamp: new Date().toISOString(),
+                isFinal: false
+              },
+            ]);
+          }
           break;
         }
-
-        /**
-         * Mark the last text message as final - for text-only mode
-         */
+        
+        // Mark the last text message as final - for text-only mode
         case "response.text.done": {
-          console.log("Text response complete:", msg.text);
+          logger.debug("Text response complete:", msg.text);
           
           setConversation((prev) => {
             if (prev.length === 0) return prev;
@@ -642,11 +798,62 @@ export default function useWebRTCAudioSession(
           });
           break;
         }
-
-        /**
-         * AI calls a function (tool)
-         */
-        case "response.function_call_arguments.done": {
+        
+        case "response.content_part.done": {
+          // Content part is complete
+          logger.debug("Text response part complete");
+          break;
+        }
+        
+        case "response.output_item.done": {
+          // Output item is complete
+          logger.debug("Output item complete");
+          break;
+        }
+        
+        case "response.done": {
+          // Full response is complete
+          if (msg.response && msg.response.output_items && msg.response.output_items[0]) {
+            const fullText = msg.response.output_items[0].content_parts
+              .filter((part: any) => part.type === "text")
+              .map((part: any) => part.text)
+              .join("");
+              
+            logger.debug("Text response complete:", fullText);
+          } else {
+            logger.debug("Response complete, but no output items found");
+          }
+          break;
+        }
+        
+        case "session.created": {
+          // Session was created
+          logger.debug("Session created:", msg.session.id);
+          break;
+        }
+        
+        case "session.updated": {
+          // Session was updated
+          logger.debug("Session updated:", msg.session.id);
+          break;
+        }
+        
+        case "conversation.item.created": {
+          // New conversation item was created
+          logger.debug("Conversation item created:", msg.item.id);
+          break;
+        }
+        
+        case "rate_limits.updated": {
+          // Rate limits were updated
+          logger.debug("Rate limits updated:", msg.rate_limits);
+          break;
+        }
+        
+        case "function_call": {
+          // Handle function calls from the assistant
+          logger.info("Function call from assistant:", msg.name);
+          
           const fn = functionRegistry.current[msg.name];
           if (fn) {
             const args = JSON.parse(msg.arguments);
@@ -672,7 +879,8 @@ export default function useWebRTCAudioSession(
         }
 
         default: {
-          console.log("Received unhandled message type:", msg.type, msg);
+          // Log unhandled message types but don't spam the console
+          logger.verbose("Received unhandled message type:", msg.type);
           break;
         }
       }
@@ -681,7 +889,7 @@ export default function useWebRTCAudioSession(
       setMsgs((prevMsgs) => [...prevMsgs, msg]);
       return msg;
     } catch (error) {
-      console.error("Error handling data channel message:", error);
+      logger.error("Error handling data channel message:", error);
     }
   }
 
@@ -995,45 +1203,205 @@ export default function useWebRTCAudioSession(
     }
   }
 
+  // Add a cleanup resources function
+  function cleanupResources() {
+    // Close data channel if it exists
+    if (dataChannelRef.current) {
+      dataChannelRef.current.close();
+      dataChannelRef.current = null;
+    }
+    
+    // Close peer connection if it exists
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    
+    // Close audio context if it exists
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(err => logger.error("Error closing audio context:", err));
+      audioContextRef.current = null;
+    }
+    
+    // Clear any intervals
+    if (volumeIntervalRef.current) {
+      clearInterval(volumeIntervalRef.current);
+      volumeIntervalRef.current = null;
+    }
+    
+    if (meterIntervalRef.current) {
+      clearInterval(meterIntervalRef.current);
+      meterIntervalRef.current = null;
+    }
+    
+    // Clear audio streams
+    if (audioStreamRef.current) {
+      audioStreamRef.current.getTracks().forEach(track => track.stop());
+      audioStreamRef.current = null;
+    }
+    
+    if (processedStreamRef.current) {
+      processedStreamRef.current.getTracks().forEach(track => track.stop());
+      processedStreamRef.current = null;
+    }
+    
+    // Reset audio indicator UI
+    if (audioIndicatorRef.current) {
+      audioIndicatorRef.current.classList.remove("active");
+    }
+    
+    // Clean up audio element
+    if (audioElementRef.current) {
+      try {
+        audioElementRef.current.srcObject = null;
+        audioElementRef.current.pause();
+        logger.debug("Cleaned up audio element");
+      } catch (err) {
+        logger.warn("Error cleaning up audio element:", err);
+      }
+      // Don't set to null as we might reuse it
+    }
+    
+    // Reset other refs
+    analyserRef.current = null;
+    ephemeralUserMessageIdRef.current = null;
+    
+    // Reset volume
+    setCurrentVolume(0);
+  }
+
   /**
-   * Start a new session:
+   * Optimized startSession function
    */
   async function startSession() {
     try {
-      console.log("Starting WebRTC session...");
-      setStatus('connecting');
+      // Don't start a new session if we're already connecting or connected
+      if (connectionState === 'connecting' || connectionState === 'connected') {
+        logger.debug(`Session already in ${connectionState} state, ignoring startSession call`);
+        return;
+      }
+      
+      // Use connection lock to prevent multiple simultaneous connection attempts
+      if (connectionLockRef.current) {
+        logger.debug("Connection attempt already in progress, ignoring duplicate startSession call");
+        return;
+      }
+      
+      // Set the connection lock
+      connectionLockRef.current = true;
+      
+      logger.info("Starting WebRTC session...");
+      setConnectionStateWithDebounce('connecting');
+      
+      // Clean up any existing session
+      if (peerConnectionRef.current) {
+        logger.debug("Cleaning up existing peer connection before creating a new one");
+        cleanupResources();
+      }
+      
+      // Increment connection attempts
+      connectionAttemptsRef.current++;
       
       // Get an ephemeral token for this session
       const token = await getEphemeralToken();
-      console.log("Obtained ephemeral token for session");
+      logger.debug("Obtained ephemeral token for session");
       
-      // Create a new peer connection
+      // Create a new peer connection with improved ICE servers configuration
       const peerConnection = new RTCPeerConnection({
         iceServers: [
           {
-            urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'],
+            urls: [
+              'stun:stun.l.google.com:19302', 
+              'stun:stun1.l.google.com:19302',
+              'stun:stun2.l.google.com:19302',
+              'stun:stun3.l.google.com:19302',
+              'stun:stun4.l.google.com:19302'
+            ],
           },
+          // Add TURN servers here if needed for better connectivity
         ],
-        // Add TURN servers here if needed
+        iceTransportPolicy: 'all', // Use 'relay' if you want to force TURN usage
+        iceCandidatePoolSize: 10, // Increase candidate pool for better connectivity
       });
-      console.log("Created new RTCPeerConnection with ICE servers");
+      logger.debug("Created new RTCPeerConnection with ICE servers");
       
       // Store the peer connection for later use
       peerConnectionRef.current = peerConnection;
       
-      // Set up event handlers for the peer connection
+      // Create a connection timeout with exponential backoff
+      const connectionTimeoutId = setTimeout(() => {
+        if (peerConnectionRef.current?.iceConnectionState !== 'connected' && 
+            peerConnectionRef.current?.iceConnectionState !== 'completed') {
+          logger.warn("Connection timeout - connection not established within timeout period");
+          setConnectionStateWithDebounce('failed');
+          
+          // Release the connection lock
+          connectionLockRef.current = false;
+          
+          // Attempt reconnect with exponential backoff if under max attempts
+          if (connectionAttemptsRef.current < maxReconnectAttempts) {
+            const backoffDelay = getBackoffDelay();
+            logger.info(`Attempting reconnection in ${backoffDelay}ms (attempt ${connectionAttemptsRef.current})`);
+            
+            setTimeout(() => {
+              // Use a direct check of the current state instead of closure variable
+              if (peerConnectionRef.current?.iceConnectionState !== 'connected' && 
+                  peerConnectionRef.current?.iceConnectionState !== 'completed') {
+                logger.info("Attempting reconnection after backoff");
+                startSession();
+              }
+            }, backoffDelay);
+          }
+        }
+      }, 15000); // 15 second timeout
+      
+      // Improved connection state management
       peerConnection.oniceconnectionstatechange = () => {
-        console.log("ICE connection state changed:", peerConnection.iceConnectionState);
-        if (peerConnection.iceConnectionState === 'disconnected' || 
-            peerConnection.iceConnectionState === 'failed' || 
-            peerConnection.iceConnectionState === 'closed') {
-          console.warn("ICE connection issue:", peerConnection.iceConnectionState);
-          setStatus(`Connection issue: ${peerConnection.iceConnectionState}`);
+        logger.debug("ICE connection state changed:", peerConnection.iceConnectionState);
+        
+        switch (peerConnection.iceConnectionState) {
+          case 'checking':
+            // Already in connecting state
+            break;
+          case 'connected':
+          case 'completed':
+            // Clear the timeout when connected
+            clearTimeout(connectionTimeoutId);
+            debouncedSetConnected();
+            break;
+          case 'disconnected':
+            // Temporary disconnection, might recover
+            setConnectionStateWithDebounce('reconnecting');
+            break;
+          case 'failed':
+            logger.warn("ICE connection failed");
+            setConnectionStateWithDebounce('failed');
+            // Release the connection lock
+            connectionLockRef.current = false;
+            break;
+          case 'closed':
+            setConnectionStateWithDebounce('disconnected');
+            // Release the connection lock
+            connectionLockRef.current = false;
+            break;
         }
       };
       
+      // Create a debounced function for setting connected state
+      const debouncedSetConnected = debounce(() => {
+        logger.info("Connection established, clearing connecting state");
+        setConnectionStateWithDebounce('connected');
+      }, 300); // 300ms debounce
+      
+      // Limit ICE candidate logging to reduce console spam
+      let iceCandidateCount = 0;
       peerConnection.onicecandidate = (event) => {
-        console.log("ICE candidate:", event.candidate);
+        iceCandidateCount++;
+        if (iceCandidateCount <= 5 || !event.candidate) {
+          console.log("ICE candidate:", event.candidate);
+        } else if (iceCandidateCount === 6) {
+          console.log("Additional ICE candidates omitted from logs...");
+        }
       };
       
       // Set up event handler for incoming tracks
@@ -1235,125 +1603,29 @@ export default function useWebRTCAudioSession(
   }
 
   /**
-   * Fetch ephemeral token from your Next.js endpoint
-   */
-  async function getEphemeralToken(modality: Modality = currentModality) {
-    try {
-      console.log(`Requesting ephemeral token for modality: ${modality}`);
-      const response = await fetch("/api/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modality }),
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Failed to get ephemeral token: ${response.status} - ${errorText}`);
-        
-        // Check for network connectivity issues
-        if (errorText.includes("ENOTFOUND") || errorText.includes("getaddrinfo")) {
-          setStatus("Network connectivity issue: Cannot reach OpenAI API. Please check your internet connection.");
-          throw new Error("Network connectivity issue: Cannot reach OpenAI API");
-        }
-        
-        throw new Error(`Failed to get ephemeral token: ${response.status} - ${errorText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (!data.client_secret?.value) {
-        console.error("Received token data:", JSON.stringify(data).substring(0, 200));
-        
-        // Check if there's an error message in the response
-        if (data.error) {
-          setStatus(`Error: ${data.error}`);
-          throw new Error(`Invalid token response: ${data.error}`);
-        }
-        
-        throw new Error("Invalid token response - missing client_secret.value");
-      }
-      
-      console.log(`Successfully obtained ephemeral token for ${modality} session`);
-      return data.client_secret.value;
-    } catch (err: unknown) {
-      console.error("getEphemeralToken error:", err);
-      
-      // Set a user-friendly error message
-      if (err instanceof Error && err.message.includes("Network connectivity")) {
-        setStatus("Network connectivity issue: Cannot reach OpenAI API. Please check your internet connection.");
-      } else {
-        setStatus(`Error getting token: ${err instanceof Error ? err.message : String(err)}`);
-      }
-      
-      throw err;
-    }
-  }
-
-  /**
    * Stop the session & cleanup
    */
   function stopSession() {
-    console.log("Stopping session and cleaning up resources");
+    logger.info("Stopping session and cleaning up resources");
     
-    if (dataChannelRef.current) {
-      dataChannelRef.current.close();
-      dataChannelRef.current = null;
-    }
+    // Use our centralized cleanup function
+    cleanupResources();
     
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-    
-    if (audioContextRef.current) {
-      try {
-        audioContextRef.current.close();
-      } catch (err) {
-        console.warn("Error closing audio context:", err);
-      }
-      audioContextRef.current = null;
-    }
-    
-    if (audioStreamRef.current) {
-      try {
-        audioStreamRef.current.getTracks().forEach(track => {
-          track.stop();
-        });
-      } catch (err) {
-        console.warn("Error stopping audio tracks:", err);
-      }
-      audioStreamRef.current = null;
-    }
-    
-    if (audioIndicatorRef.current) {
-      audioIndicatorRef.current.classList.remove("active");
-    }
-    
-    if (volumeIntervalRef.current) {
-      clearInterval(volumeIntervalRef.current);
-      volumeIntervalRef.current = null;
-    }
-    
-    // Clean up audio element
-    if (audioElementRef.current) {
-      try {
-        audioElementRef.current.srcObject = null;
-        audioElementRef.current.pause();
-        console.log("Cleaned up audio element");
-      } catch (err) {
-        console.warn("Error cleaning up audio element:", err);
-      }
-      // Don't set to null as we might reuse it
-    }
-    
-    analyserRef.current = null;
-    ephemeralUserMessageIdRef.current = null;
-
-    setCurrentVolume(0);
+    // Reset state
+    setConnectionStateWithDebounce('idle');
     setIsSessionActive(false);
-    setStatus("Session stopped");
+    setStatus('');
     
-    console.log("Session cleanup completed");
+    // Release the connection lock
+    connectionLockRef.current = false;
+    
+    // Reset connection attempts
+    connectionAttemptsRef.current = 0;
+    
+    // Clear conversation if needed
+    // setConversation([]);
+    
+    logger.debug("Session stopped and resources cleaned up");
   }
 
   /**

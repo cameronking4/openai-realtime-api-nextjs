@@ -7,7 +7,6 @@ import { Toaster } from "@/app/_components/ui/sonner"
 import { Analytics } from "@vercel/analytics/react"
 import { TranslationsProvider } from "@/app/_components/shared/translations-context"
 import { Banner } from "@/app/_components/shared/banner";
-import { Footer } from "@/app/_components/shared/footer";
 import { AppProviders } from "@/app/_components/providers/app-providers";
 
 const poppins = Poppins({
@@ -44,7 +43,6 @@ export default function RootLayout({
             <div className="relative flex min-h-dvh flex-col bg-white items-center">
               <Banner />
               {children}
-              <Footer />
             </div>
             <Toaster />
           </TranslationsProvider>
