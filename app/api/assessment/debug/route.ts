@@ -62,7 +62,7 @@ export async function GET() {
     try {
       console.log('DEBUG: Testing API key with a simple request...');
       const testResponse = await anthropic.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-7-sonnet-20250219',
         max_tokens: 50,
         messages: [
           {
@@ -79,7 +79,7 @@ export async function GET() {
         success: true,
         message: 'Anthropic API test successful',
         details: {
-          model: 'claude-3-haiku-20240307',
+          model: 'claude-3-7-sonnet-20250219',
           responseId: testResponse.id,
           environment: process.env.NODE_ENV || 'unknown',
           vercel: process.env.VERCEL === '1' ? 'true' : 'false',

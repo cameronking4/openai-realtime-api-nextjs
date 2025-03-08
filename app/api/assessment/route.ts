@@ -28,6 +28,22 @@ function logEnvironmentInfo() {
   }
 }
 
+// Helper function to truncate transcript if it's too large
+function truncateTranscript(transcript: string, maxLength: number = 10000): string {
+  if (transcript.length <= maxLength) {
+    return transcript;
+  }
+  
+  console.log(`Transcript is too large (${transcript.length} chars), truncating to ${maxLength} chars`);
+  
+  // Try to truncate at a natural boundary like a newline
+  const halfLength = Math.floor(maxLength / 2);
+  const firstHalf = transcript.substring(0, halfLength);
+  const secondHalf = transcript.substring(transcript.length - halfLength);
+  
+  return `${firstHalf}\n\n[... TRANSCRIPT TRUNCATED DUE TO LENGTH ...]\n\n${secondHalf}`;
+}
+
 export async function POST(request: Request) {
   try {
     // Log environment information
@@ -36,25 +52,54 @@ export async function POST(request: Request) {
     // Parse request body with explicit error handling
     let transcript: string;
     try {
-      const body = await request.json();
-      transcript = body.transcript;
+      // First try to get the raw body as text to check for parsing issues
+      const rawBody = await request.text();
+      console.log(`Raw request body length: ${rawBody.length} characters`);
       
-      if (!transcript) {
-        console.error('Transcript is missing from request body');
+      if (!rawBody || rawBody.trim() === '') {
+        console.error('Empty request body received');
         return NextResponse.json(
-          { error: 'Transcript is required' },
+          { error: 'Empty request body' },
           { status: 400 }
         );
       }
       
-      // Log transcript length for debugging
-      console.log(`Received transcript with length: ${transcript.length} characters`);
+      // Try to parse the JSON
+      try {
+        const body = JSON.parse(rawBody);
+        transcript = body.transcript;
+        
+        if (!transcript) {
+          console.error('Transcript is missing from request body');
+          return NextResponse.json(
+            { error: 'Transcript is required' },
+            { status: 400 }
+          );
+        }
+        
+        // Log transcript length for debugging
+        console.log(`Received transcript with length: ${transcript.length} characters`);
+        
+        // Truncate transcript if it's too large
+        transcript = truncateTranscript(transcript);
+        
+      } catch (jsonError: any) {
+        console.error('Error parsing JSON request body:', jsonError);
+        return NextResponse.json(
+          { 
+            error: 'Invalid JSON in request body',
+            details: jsonError.message || 'Could not parse JSON request body',
+            rawBodyPreview: rawBody.substring(0, 100) + '...'
+          },
+          { status: 400 }
+        );
+      }
     } catch (parseError: any) {
-      console.error('Error parsing request body:', parseError);
+      console.error('Error reading request body:', parseError);
       return NextResponse.json(
         { 
-          error: 'Invalid request body',
-          details: parseError.message || 'Could not parse JSON request body',
+          error: 'Error reading request body',
+          details: parseError.message || 'Could not read request body',
           environment: process.env.NODE_ENV || 'unknown',
           vercel: process.env.VERCEL === '1' ? 'true' : 'false'
         },
@@ -80,11 +125,12 @@ export async function POST(request: Request) {
     const prompt = `${AI_ASSESSMENT_PROMPT}\n\nHere is the transcript to analyze:\n\n${transcript}\n\nIMPORTANT: Your response MUST be a valid JSON object exactly matching the format specified above. Do not include any text before or after the JSON object.`;
 
     console.log('Sending assessment request to Anthropic API...');
+    console.log(`Total prompt length: ${prompt.length} characters`);
     
     try {
-      // Main API call - using the same model as the working suggestions API
+      // Main API call - using the model specified by the user
       const response = await anthropic.messages.create({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-7-sonnet-20250219',
         max_tokens: 4000,
         temperature: 0.7,
         messages: [
@@ -138,7 +184,8 @@ export async function POST(request: Request) {
         assessment: assessmentData,
         jsonExtracted: jsonExtracted,
         testData: {
-          prompt: prompt,
+          promptLength: prompt.length,
+          responseLength: responseText.length,
           responsePreview: responseText.substring(0, 200) + '...'
         }
       };
