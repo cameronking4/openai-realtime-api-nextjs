@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
 import { AI_ASSESSMENT_PROMPT } from '@/prompts/ai-conversation-templates';
 
 // Helper function to truncate transcript if it's too large
@@ -16,6 +15,40 @@ function truncateTranscript(transcript: string, maxLength: number = 10000): stri
   const secondHalf = transcript.substring(transcript.length - halfLength);
   
   return `${firstHalf}\n\n[... TRANSCRIPT TRUNCATED DUE TO LENGTH ...]\n\n${secondHalf}`;
+}
+
+// Custom function to call Anthropic API directly without the SDK
+async function callAnthropicAPI(apiKey: string, prompt: string) {
+  console.log('Calling Anthropic API directly...');
+  
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-3-7-sonnet-20250219',
+      max_tokens: 4000,
+      temperature: 0.7,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      system: "You are a clinical psychologist specializing in psycho-oncology. You analyze conversation transcripts and provide assessments in JSON format. Your responses must be valid JSON objects with no additional text."
+    })
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Anthropic API error: ${response.status} - ${errorText}`);
+    throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
+  }
+  
+  return await response.json();
 }
 
 export async function POST(request: Request) {
@@ -41,11 +74,6 @@ export async function POST(request: Request) {
     console.log(`Using Anthropic API key: ${maskedKey}`);
     console.log(`API key length: ${apiKey.length}`);
     console.log(`API key prefix: ${apiKey.substring(0, 5)}`);
-    
-    // Initialize Anthropic client with direct API key in the exact same way as suggestions API
-    const anthropic = new Anthropic({
-      apiKey: apiKey,
-    });
     
     // Parse request body with explicit error handling
     let transcript: string;
@@ -112,22 +140,11 @@ export async function POST(request: Request) {
     console.log(`Total prompt length: ${prompt.length} characters`);
     
     try {
-      // Main API call - using the model specified by the user
-      const response = await anthropic.messages.create({
-        model: 'claude-3-7-sonnet-20250219',
-        max_tokens: 4000,
-        temperature: 0.7,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        system: "You are a clinical psychologist specializing in psycho-oncology. You analyze conversation transcripts and provide assessments in JSON format. Your responses must be valid JSON objects with no additional text.",
-      });
-
+      // Call Anthropic API directly without using the SDK
+      const response = await callAnthropicAPI(apiKey, prompt);
+      
       // Extract the text content from the response
-      const responseText = response.content[0].type === 'text' ? response.content[0].text : 'No text content returned';
+      const responseText = response.content[0].text || 'No text content returned';
       
       console.log('Received response from Anthropic API');
       console.log('Response preview:', responseText.substring(0, 100) + '...');
@@ -189,7 +206,7 @@ export async function POST(request: Request) {
       }, null, 2));
       
       // Handle authentication errors specifically
-      if (apiError.status === 401) {
+      if (apiError.message && apiError.message.includes('401')) {
         return NextResponse.json(
           { 
             error: 'Authentication error with Anthropic API',

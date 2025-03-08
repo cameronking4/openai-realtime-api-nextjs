@@ -1,5 +1,37 @@
 import { NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
+
+// Custom function to test Anthropic API directly without the SDK
+async function testAnthropicAPI(apiKey: string) {
+  console.log('DEBUG: Testing Anthropic API directly...');
+  
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-3-7-sonnet-20250219',
+      max_tokens: 50,
+      temperature: 0.7,
+      messages: [
+        {
+          role: 'user',
+          content: 'Hello, this is a test message to verify the API key is working.'
+        }
+      ]
+    })
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`DEBUG: Anthropic API error: ${response.status} - ${errorText}`);
+    throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
+  }
+  
+  return await response.json();
+}
 
 /**
  * GET handler for debugging the assessment API
@@ -55,26 +87,12 @@ export async function GET() {
       );
     }
     
-    // Initialize Anthropic client with direct API key
-    const anthropic = new Anthropic({
-      apiKey: apiKey,
-    });
-    
     // Try a simple API call to test connectivity
     try {
       console.log('DEBUG: Testing API key with a simple request...');
-      const testResponse = await anthropic.messages.create({
-        model: 'claude-3-7-sonnet-20250219',
-        max_tokens: 50,
-        messages: [
-          {
-            role: 'user',
-            content: 'Hello, this is a test message to verify the API key is working.',
-          },
-        ],
-      });
+      const response = await testAnthropicAPI(apiKey);
       
-      console.log('DEBUG: Test API call successful!', testResponse.id);
+      console.log('DEBUG: Test API call successful!', response.id);
       
       // Return success response with details
       return NextResponse.json({
@@ -82,10 +100,10 @@ export async function GET() {
         message: 'Anthropic API test successful',
         details: {
           model: 'claude-3-7-sonnet-20250219',
-          responseId: testResponse.id,
+          responseId: response.id,
           environment: process.env.NODE_ENV || 'unknown',
           vercel: process.env.VERCEL === '1' ? 'true' : 'false',
-          textPreview: testResponse.content[0].type === 'text' ? testResponse.content[0].text.substring(0, 100) : 'No text content',
+          textPreview: response.content[0].text || 'No text content',
         }
       });
     } catch (apiError: any) {
