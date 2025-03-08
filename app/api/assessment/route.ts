@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { AI_ASSESSMENT_PROMPT } from '@/prompts/ai-conversation-templates';
-import { callAnthropicAPI } from '../../_lib/anthropic-client';
+import { callAnthropicAPI } from '@/app/_lib/anthropic-client';
 
 // Helper function to truncate transcript if it's too large
-function truncateTranscript(transcript: string, maxLength: number = 5000): string {
+function truncateTranscript(transcript: string, maxLength: number = 10000): string {
   if (transcript.length <= maxLength) {
     return transcript;
   }
@@ -16,12 +16,6 @@ function truncateTranscript(transcript: string, maxLength: number = 5000): strin
   const secondHalf = transcript.substring(transcript.length - halfLength);
   
   return `${firstHalf}\n\n[... TRANSCRIPT TRUNCATED DUE TO LENGTH ...]\n\n${secondHalf}`;
-}
-
-// Helper function to create a simplified prompt for faster processing
-function createSimplifiedPrompt(transcript: string): string {
-  // Create a more concise prompt that will process faster
-  return `${AI_ASSESSMENT_PROMPT}\n\nHere is a brief transcript to analyze. Focus on the key indicators and provide a concise assessment:\n\n${transcript}\n\nProvide your assessment in JSON format.`;
 }
 
 export async function POST(request: Request) {
@@ -79,8 +73,8 @@ export async function POST(request: Request) {
         // Log transcript length for debugging
         console.log(`Received transcript with length: ${transcript.length} characters`);
         
-        // Truncate transcript if it's too large - use a smaller limit for Vercel
-        transcript = truncateTranscript(transcript, 5000);
+        // Truncate transcript if it's too large
+        transcript = truncateTranscript(transcript);
         
       } catch (jsonError: any) {
         console.error('Error parsing JSON request body:', jsonError);
@@ -106,23 +100,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create a simplified prompt for faster processing
-    const prompt = createSimplifiedPrompt(transcript);
+    // Combine the assessment prompt with the transcript
+    const prompt = `${AI_ASSESSMENT_PROMPT}\n\nHere is the transcript to analyze:\n\n${transcript}\n\nIMPORTANT: Your response MUST be a valid JSON object exactly matching the format specified above. Do not include any text before or after the JSON object.`;
 
     console.log('Sending assessment request to Anthropic API...');
     console.log(`Total prompt length: ${prompt.length} characters`);
     
-    // Check if we're in Vercel production environment
-    const isVercelProduction = process.env.VERCEL === '1' && process.env.NODE_ENV === 'production';
-    
     try {
-      // Call Anthropic API using our custom client - use haiku model in production for speed
-      const model = isVercelProduction ? 'claude-3-haiku-20240307' : 'claude-3-7-sonnet-20250219';
-      const maxTokens = isVercelProduction ? 2000 : 4000;
-      
-      console.log(`Using model: ${model} with max tokens: ${maxTokens}`);
-      
-      const response = await callAnthropicAPI(apiKey, prompt, model, maxTokens);
+      // Call Anthropic API using our custom client
+      const response = await callAnthropicAPI(apiKey, prompt);
       
       // Extract the text content from the response
       const responseText = response.content[0].type === 'text' ? response.content[0].text : 'No text content returned';
@@ -165,7 +151,6 @@ export async function POST(request: Request) {
         success: true,
         assessment: assessmentData,
         jsonExtracted: jsonExtracted,
-        model: model,
         testData: {
           promptLength: prompt.length,
           responseLength: responseText.length,
