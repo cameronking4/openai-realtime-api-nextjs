@@ -4,7 +4,7 @@ import { Button } from "@/app/_components/ui/button";
 import Link from "next/link";
 import { ThemeSwitcher } from "@/app/_components/shared/theme-switcher";
 import { MobileNav } from "./mobile-nav";
-import { Badge } from "./ui/badge";
+import { Badge } from "@/app/_components/ui/badge";
 import { siteConfig } from "@/config/site";
 import { TwitterIcon, StarIcon } from "lucide-react";
 import { motion } from "framer-motion";
@@ -12,7 +12,7 @@ import { LanguageSwitcher } from "@/app/_components/shared/language-switcher";
 import { useTranslations } from "@/app/_components/shared/translations-context";
 import { SidePanel } from "./side-panel";
 import { useVoiceContext } from "@/app/_contexts/voice-context";
-import { Message as MessageType } from "@/types";
+import { Message as MessageType } from "@/app/_types";
 
 interface HeaderProps {
   messages?: MessageType[];
