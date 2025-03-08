@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
+import { testAnthropicAPI } from '@/app/_lib/anthropic-client';
 
 /**
  * GET handler for debugging the assessment API
@@ -55,24 +55,10 @@ export async function GET() {
       );
     }
     
-    // Initialize Anthropic client with proper authentication
-    const anthropic = new Anthropic({
-      apiKey: apiKey,
-    });
-    
     // Try a simple API call to test connectivity
     try {
       console.log('DEBUG: Testing API key with a simple request...');
-      const response = await anthropic.messages.create({
-        model: 'claude-3-7-sonnet-20250219',
-        max_tokens: 50,
-        messages: [
-          {
-            role: 'user',
-            content: 'Hello, this is a test message to verify the API key is working.',
-          },
-        ],
-      });
+      const response = await testAnthropicAPI(apiKey);
       
       console.log('DEBUG: Test API call successful!', response.id);
       

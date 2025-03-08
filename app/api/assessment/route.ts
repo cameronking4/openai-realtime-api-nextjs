@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
 import { AI_ASSESSMENT_PROMPT } from '@/prompts/ai-conversation-templates';
+import { callAnthropicAPI } from '@/app/_lib/anthropic-client';
 
 // Helper function to truncate transcript if it's too large
 function truncateTranscript(transcript: string, maxLength: number = 10000): string {
@@ -41,11 +41,6 @@ export async function POST(request: Request) {
     console.log(`Using Anthropic API key: ${maskedKey}`);
     console.log(`API key length: ${apiKey.length}`);
     console.log(`API key prefix: ${apiKey.substring(0, 5)}`);
-    
-    // Initialize Anthropic client with proper authentication
-    const anthropic = new Anthropic({
-      apiKey: apiKey,
-    });
     
     // Parse request body with explicit error handling
     let transcript: string;
@@ -112,19 +107,8 @@ export async function POST(request: Request) {
     console.log(`Total prompt length: ${prompt.length} characters`);
     
     try {
-      // Call Anthropic API using the SDK
-      const response = await anthropic.messages.create({
-        model: 'claude-3-7-sonnet-20250219',
-        max_tokens: 4000,
-        temperature: 0.7,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        system: "You are a clinical psychologist specializing in psycho-oncology. You analyze conversation transcripts and provide assessments in JSON format. Your responses must be valid JSON objects with no additional text.",
-      });
+      // Call Anthropic API using our custom client
+      const response = await callAnthropicAPI(apiKey, prompt);
       
       // Extract the text content from the response
       const responseText = response.content[0].type === 'text' ? response.content[0].text : 'No text content returned';
