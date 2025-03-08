@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { CancerChatInterface } from "@/app/_components/features/cancer-chat/CancerChatInterface";
 import { PreSessionOptions } from "@/app/_components/features/cancer-chat/PreSessionOptions";
@@ -8,6 +8,7 @@ import { Conversation } from "@/app/_lib/conversations";
 import useWebRTCAudioSession from "@/app/_hooks/use-webrtc";
 import { useModalityContext } from "@/app/_contexts/modality-context";
 import { useVoiceContext } from "@/app/_contexts/voice-context";
+import { useToolsFunctions } from "@/app/_hooks/use-tools";
 import { tools } from "@/app/_lib/tools";
 import { generateTranscript, saveTranscript, Transcript } from "@/app/_lib/transcript-service";
 import { Button } from "@/app/_components/ui/button";
@@ -19,6 +20,7 @@ export default function CancerChatPage() {
   const [isPaused, setIsPaused] = useState(false);
   const [sessionDuration, setSessionDuration] = useState(0);
   const [sessionInterval, setSessionInterval] = useState<NodeJS.Timeout | null>(null);
+  const [sessionEndReason, setSessionEndReason] = useState<string | null>(null);
   
   // Microphone stream reference
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -32,6 +34,10 @@ export default function CancerChatPage() {
   
   // Get modality context
   const { modality, setModality, isAudioEnabled } = useModalityContext();
+
+  // Error state
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   
   // WebRTC Audio Session Hook
   const {
@@ -43,12 +49,187 @@ export default function CancerChatPage() {
     sendTextMessage,
     currentVolume,
     updateModality,
-    currentModality
+    currentModality,
+    registerFunction,
+    listRegisteredFunctions
   } = useWebRTCAudioSession(voice, tools);
 
-  // Error state
-  const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  // Handle ending a session
+  const handleEndSession = useCallback((reason?: string) => {
+    try {
+      console.log("🔴🔴🔴 HANDLEENDSESSION FUNCTION CALLED");
+      
+      // Store the reason for ending the session
+      if (reason) {
+        console.log("🔴🔴🔴 SESSION END REASON:", reason);
+        setSessionEndReason(reason);
+      } else {
+        console.log("🔴🔴🔴 NO REASON PROVIDED FOR SESSION END");
+        setSessionEndReason("No reason provided");
+      }
+      
+      // IMMEDIATELY set session state to post to ensure UI updates
+      setSessionState("post");
+      console.log("🔴🔴🔴 IMMEDIATELY SET SESSION STATE TO POST");
+      
+      console.log("🔴 Ending session and cleaning up resources");
+      console.log("🔴 Current session state:", sessionState);
+      console.log("🔴 Is session active:", isSessionActive);
+      
+      // Set isPaused to false
+      setIsPaused(false);
+      
+      // Clean up microphone stream if active
+      try {
+        if (micStreamRef.current) {
+          console.log("🔴 Cleaning up microphone stream at session end");
+          micStreamRef.current.getTracks().forEach(track => {
+            track.stop();
+          });
+          micStreamRef.current = null;
+        } else {
+          console.log("🔴 No microphone stream to clean up");
+        }
+      } catch (micError) {
+        console.error("🔴 Error cleaning up microphone stream:", micError);
+      }
+      
+      // Stop WebRTC session if active
+      try {
+        if (isSessionActive) {
+          console.log("🔴 Stopping WebRTC session");
+          handleStartStopClick();
+        } else {
+          console.log("🔴 No active WebRTC session to stop");
+        }
+      } catch (webrtcError) {
+        console.error("🔴 Error stopping WebRTC session:", webrtcError);
+      }
+      
+      // Reset modality to text for next session
+      try {
+        console.log("🔴 Resetting modality to text");
+        setModality("text");
+      } catch (modalityError) {
+        console.error("🔴 Error resetting modality:", modalityError);
+      }
+      
+      // Generate and save transcript
+      try {
+        console.log("🔴 Generating and saving transcript");
+        const sessionId = `session_${Date.now()}`;
+        const transcript = generateTranscript(conversation, sessionId);
+        saveTranscript(transcript);
+      } catch (transcriptError) {
+        console.error("🔴 Error generating/saving transcript:", transcriptError);
+      }
+      
+      console.log("🔴🔴🔴 SESSION END COMPLETE");
+    } catch (error) {
+      console.error("🔴 Critical error in handleEndSession:", error);
+      // Force session state to post even if there was an error
+      setSessionState("post");
+    }
+  }, [isSessionActive, handleStartStopClick, setModality, conversation, sessionState]);
+
+  // Get tool functions with the endSession callback
+  const toolsFunctions = useToolsFunctions(handleEndSession);
+  
+  // Register all functions when the component mounts
+  useEffect(() => {
+    console.log("🔴 Registering functions - effect triggered");
+    
+    // Create a stable mapping of function names
+    const functionNames: Record<string, string> = {
+      timeFunction: 'getCurrentTime',
+      backgroundFunction: 'changeBackgroundColor',
+      partyFunction: 'partyMode',
+      launchWebsite: 'launchWebsite', 
+      copyToClipboard: 'copyToClipboard',
+      scrapeWebsite: 'scrapeWebsite',
+      endSession: 'endSession'
+    };
+    
+    // Register all functions by iterating over the object
+    Object.entries(toolsFunctions).forEach(([name, func]) => {
+      if (functionNames[name]) {
+        console.log(`🔴 Registering function: ${name} as ${functionNames[name]}`);
+        registerFunction(functionNames[name], func);
+      }
+    });
+    
+    // Verify that endSession is registered
+    console.log("🔴 Verifying endSession function registration:");
+    const registeredFunctions = listRegisteredFunctions();
+    console.log("🔴 All registered functions:", registeredFunctions);
+    console.log("🔴 Is endSession registered:", registeredFunctions.includes('endSession'));
+    
+    if (!registeredFunctions.includes('endSession')) {
+      console.error("🔴 endSession function is not registered! Attempting to register it directly.");
+      if (toolsFunctions.endSession) {
+        registerFunction('endSession', toolsFunctions.endSession);
+        console.log("🔴 Registered endSession function directly.");
+      } else {
+        console.error("🔴 endSession function not found in toolsFunctions!");
+      }
+    }
+    
+    // Add a global window function for direct access in case the callback approach fails
+    (window as any).forceEndSession = (reason?: string) => {
+      console.log("🔴🔴🔴 FORCE END SESSION CALLED FROM WINDOW OBJECT", reason ? `WITH REASON: ${reason}` : "WITHOUT REASON");
+      handleEndSession(reason);
+    };
+    
+    // Add a global debug function to check registered functions
+    (window as any).debugRegisteredFunctions = () => {
+      console.log("🔴🔴🔴 DEBUG: Checking registered functions");
+      return listRegisteredFunctions();
+    };
+    
+    // Add a debug function to check the session configuration
+    (window as any).debugSession = async () => {
+      try {
+        console.log("🔴🔴🔴 DEBUG: Checking session configuration");
+        const response = await fetch('/api/session/debug');
+        const data = await response.json();
+        console.log("🔴🔴🔴 SESSION CONFIG:", data);
+        return data;
+      } catch (error) {
+        console.error("🔴🔴🔴 ERROR CHECKING SESSION CONFIG:", error);
+        return { error };
+      }
+    };
+    
+    // Add a direct test function for the endSession function
+    (window as any).testEndSessionFunction = () => {
+      console.log("🔴🔴🔴 TEST: Directly calling endSession function");
+      
+      // Get the registered functions
+      const registeredFunctions = listRegisteredFunctions();
+      console.log("🔴🔴🔴 TEST: Registered functions:", registeredFunctions);
+      
+      if (registeredFunctions.includes('endSession')) {
+        console.log("🔴🔴🔴 TEST: endSession function is registered");
+        
+        // Call the endSession function from toolsFunctions directly
+        try {
+          console.log("🔴🔴🔴 TEST: Calling endSession from toolsFunctions");
+          const result = toolsFunctions.endSession({ reason: "test from console" });
+          console.log("🔴🔴🔴 TEST: endSession function called successfully, result:", result);
+          return result;
+        } catch (error) {
+          console.error("🔴🔴🔴 TEST: Error calling endSession function:", error);
+          return { success: false, error };
+        }
+      } else {
+        console.error("🔴🔴🔴 TEST: endSession function is not registered");
+        return { success: false, error: "endSession function is not registered" };
+      }
+    };
+    
+    // This effect should only run once when the component mounts
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Track connection status changes
   useEffect(() => {
@@ -192,6 +373,54 @@ export default function CancerChatPage() {
     }
   }, [sessionState, isPaused]);
 
+  // Track conversation changes to detect when AI stops responding after being asked to end the session
+  useEffect(() => {
+    // Only run this effect if the session is active
+    if (sessionState !== "active") return;
+    
+    // Get the last few messages
+    const lastMessages = conversation.slice(-3);
+    
+    // Check if the last message is from the user and contains phrases related to ending the session
+    const lastMessage = lastMessages[lastMessages.length - 1];
+    if (lastMessage && lastMessage.role === "user") {
+      const text = lastMessage.text.toLowerCase();
+      const endSessionPhrases = [
+        "end session", 
+        "stop session", 
+        "finish session", 
+        "goodbye", 
+        "bye", 
+        "thank you",
+        "end our conversation",
+        "stop our conversation",
+        "finish our conversation"
+      ];
+      
+      const containsEndSessionPhrase = endSessionPhrases.some(phrase => text.includes(phrase));
+      
+      if (containsEndSessionPhrase) {
+        console.log("🔴🔴🔴 DETECTED USER REQUEST TO END SESSION:", text);
+        
+        // Set a timeout to check if the AI has responded
+        const timeoutId = setTimeout(() => {
+          // Check if the AI has responded since the user's message
+          const currentConversation = conversation;
+          const lastMessageNow = currentConversation[currentConversation.length - 1];
+          
+          // If the last message is still from the user, the AI hasn't responded
+          if (lastMessageNow && lastMessageNow.role === "user" && lastMessageNow.id === lastMessage.id) {
+            console.log("🔴🔴🔴 AI HAS NOT RESPONDED TO END SESSION REQUEST, ENDING SESSION MANUALLY");
+            handleEndSession();
+          }
+        }, 10000); // Wait 10 seconds for the AI to respond
+        
+        // Clean up the timeout if the component unmounts or the conversation changes
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [conversation, sessionState, handleEndSession]);
+
   // Generic handle starting a session
   const handleStartSession = () => {
     console.log("Starting generic session");
@@ -291,36 +520,6 @@ export default function CancerChatPage() {
     setIsPaused(false);
   };
 
-  // Handle ending a session
-  const handleEndSession = () => {
-    console.log("Ending session and cleaning up resources");
-    
-    setSessionState("post");
-    setIsPaused(false);
-    
-    // Clean up microphone stream if active
-    if (micStreamRef.current) {
-      console.log("Cleaning up microphone stream at session end");
-      micStreamRef.current.getTracks().forEach(track => {
-        track.stop();
-      });
-      micStreamRef.current = null;
-    }
-    
-    if (isSessionActive) {
-      // Stop the WebRTC session
-      handleStartStopClick();
-    }
-    
-    // Reset modality to text for next session
-    setModality("text");
-    
-    // Generate and save transcript
-    const sessionId = `session_${Date.now()}`;
-    const transcript = generateTranscript(conversation, sessionId);
-    saveTranscript(transcript);
-  };
-
   // Handle sending a message
   const handleSendMessage = (text: string) => {
     // Use the WebRTC data channel to send text message
@@ -371,6 +570,26 @@ export default function CancerChatPage() {
     />
   );
 
+  // Memoize the AI end session handler to avoid recreating it on every render
+  const handleAIEndSession = useCallback((event: CustomEvent<{ reason: string }>) => {
+    console.log("🔴🔴🔴 AI REQUESTED TO END SESSION:", event.detail.reason);
+    console.log("🔴🔴🔴 CURRENT SESSION STATE BEFORE ENDING:", sessionState);
+    console.log("🔴🔴🔴 IS SESSION ACTIVE:", isSessionActive);
+    handleEndSession(event.detail.reason);
+    console.log("🔴🔴🔴 HANDLEENDSESSION CALLED");
+  }, [handleEndSession, sessionState, isSessionActive]);
+
+  // Listen for AI-triggered session end events
+  useEffect(() => {
+    // Add event listener
+    window.addEventListener('ai-end-session', handleAIEndSession as EventListener);
+
+    // Clean up
+    return () => {
+      window.removeEventListener('ai-end-session', handleAIEndSession as EventListener);
+    };
+  }, [handleAIEndSession]);
+
   return (
     <main className="min-h-screen max-h-screen overflow-hidden bg-white">
       {hasError && (
@@ -416,6 +635,7 @@ export default function CancerChatPage() {
         currentVolume={currentVolume}
         isConnecting={isConnecting}
         connectionStatus={connectionStatus}
+        sessionEndReason={sessionEndReason}
       />
     </main>
   );

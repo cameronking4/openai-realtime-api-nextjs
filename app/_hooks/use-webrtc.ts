@@ -35,6 +35,7 @@ interface UseWebRTCAudioSessionReturn {
   stopSession: () => void;
   handleStartStopClick: () => void;
   registerFunction: (name: string, fn: Function) => void;
+  listRegisteredFunctions: () => string[];
   msgs: any[];
   currentVolume: number;
   conversation: Conversation[];
@@ -89,6 +90,9 @@ export default function useWebRTCAudioSession(
 
   // For function calls (AI "tools")
   const functionRegistry = useRef<Record<string, Function>>({});
+  
+  // Keep track of messages that have triggered endSession
+  const endSessionCalledMessages = useRef<Set<string>>(new Set());
 
   // Volume analysis (assistant inbound audio)
   const [currentVolume, setCurrentVolume] = useState(0);
@@ -388,7 +392,19 @@ export default function useWebRTCAudioSession(
    * Register a function (tool) so the AI can call it.
    */
   function registerFunction(name: string, fn: Function) {
+    console.log(`🔍 Registering function: ${name}`);
     functionRegistry.current[name] = fn;
+  }
+
+  /**
+   * Debug function to list all registered functions
+   */
+  function listRegisteredFunctions() {
+    console.log("🔍 Currently registered functions:");
+    Object.keys(functionRegistry.current).forEach(name => {
+      console.log(`🔍 - ${name}`);
+    });
+    return Object.keys(functionRegistry.current);
   }
 
   /**
@@ -716,10 +732,169 @@ export default function useWebRTCAudioSession(
    */
   async function handleDataChannelMessage(event: MessageEvent) {
     try {
-      const msg = JSON.parse(event.data);
+      // Log the raw message data for debugging
+      console.log("🔍 RAW MESSAGE DATA:", event.data);
       
+      const msg = JSON.parse(event.data);
+      console.log("🔍 PARSED MESSAGE TYPE:", msg.type);
+      
+      // Log all message types to help debug function calling
+      if (msg.type && msg.type.includes("function")) {
+        console.log("🔴🔴🔴 FUNCTION-RELATED MESSAGE:", msg);
+      }
+      
+      // Check for messages that might indicate the AI is trying to end the session
+      if (msg.type === "message" && msg.role === "assistant") {
+        // Check if the message content contains phrases related to ending the session
+        const content = typeof msg.content === 'string' ? msg.content.toLowerCase() : '';
+        const endSessionPhrases = [
+          "end our session", 
+          "ending our session", 
+          "session is now complete", 
+          "conclude our session",
+          "thank you for your time today",
+          "session has ended",
+          "end the session",
+          "ending the session",
+          "i'll end our session now",
+          "i will end our session now",
+          "i'll end the session now",
+          "i will end the session now",
+          "i'll end our session",
+          "i will end our session",
+          "goodbye",
+          "this concludes our session",
+          "take care",
+          "feel free to reach out",
+          "thank you for sharing"
+        ];
+        
+        // Check for attempts to call endSession function with incorrect syntax
+        const endSessionFunctionPatterns = [
+          /endsession\s*\(\s*\{.*?\}\s*\)/i,
+          /endsession\s*\(\s*".*?"\s*\)/i,
+          /endsession\s*\(\s*'.*?'\s*\)/i,
+          /endsession\s*\(\s*.*?\s*\)/i,
+          /end_session\s*\(\s*\{.*?\}\s*\)/i,
+          /end_session\s*\(\s*".*?"\s*\)/i,
+          /end_session\s*\(\s*'.*?'\s*\)/i,
+          /end_session\s*\(\s*.*?\s*\)/i
+        ];
+        
+        // Check if the message contains an attempt to call endSession
+        const containsEndSessionFunctionCall = endSessionFunctionPatterns.some(pattern => pattern.test(content));
+        
+        if (containsEndSessionFunctionCall) {
+          console.log("🔴🔴🔴 DETECTED AI ATTEMPTING TO CALL ENDSESSION WITH INCORRECT SYNTAX");
+          console.log("🔴🔴🔴 MESSAGE CONTENT:", content);
+          
+          // Extract the reason from the attempted function call
+          let reason = "AI attempted to end session with incorrect syntax";
+          const reasonMatch = content.match(/endsession\s*\(\s*\{\s*"reason"\s*:\s*"(.*?)"\s*\}\s*\)/i) || 
+                             content.match(/endsession\s*\(\s*"(.*?)"\s*\)/i) ||
+                             content.match(/end_session\s*\(\s*\{\s*"reason"\s*:\s*"(.*?)"\s*\}\s*\)/i) ||
+                             content.match(/end_session\s*\(\s*"(.*?)"\s*\)/i);
+          
+          if (reasonMatch && reasonMatch[1]) {
+            reason = reasonMatch[1];
+          }
+          
+          // Check if endSession function is registered
+          const registeredFunctions = Object.keys(functionRegistry.current);
+          if (registeredFunctions.includes('endSession')) {
+            console.log("🔴🔴🔴 endSession function is registered, calling it manually with reason:", reason);
+            
+            // Call the endSession function manually
+            try {
+              const endSessionFn = functionRegistry.current['endSession'];
+              if (typeof endSessionFn === 'function') {
+                endSessionFn({ reason });
+              }
+            } catch (error) {
+              console.error("🔴🔴🔴 Error calling endSession function:", error);
+            }
+          }
+        }
+        
+        const containsEndSessionPhrase = endSessionPhrases.some(phrase => content.includes(phrase));
+        
+        if (containsEndSessionPhrase && !containsEndSessionFunctionCall) {
+          console.log("🔴🔴🔴 DETECTED AI ATTEMPTING TO END SESSION WITHOUT CALLING FUNCTION");
+          console.log("🔴🔴🔴 MESSAGE CONTENT:", content);
+          
+          // Check if endSession function is registered
+          const registeredFunctions = Object.keys(functionRegistry.current);
+          if (registeredFunctions.includes('endSession')) {
+            console.log("🔴🔴🔴 endSession function is registered, calling it manually");
+            
+            // Call the endSession function manually
+            try {
+              console.log("🔴🔴🔴 Calling endSession function with reason: AI stopped responding");
+              const endSessionFn = functionRegistry.current['endSession'];
+              if (typeof endSessionFn === 'function') {
+                endSessionFn({ reason: "AI stopped responding without calling endSession function" });
+              }
+            } catch (error) {
+              console.error("🔴🔴🔴 Error calling endSession function:", error);
+            }
+          }
+        }
+      }
+      
+      // Check for user messages that explicitly ask to end the session
+      if (msg.type === "message" && msg.role === "user") {
+        const content = typeof msg.content === 'string' ? msg.content.toLowerCase() : '';
+        const endSessionPhrases = [
+          "end session", 
+          "end the session",
+          "stop session",
+          "stop the session",
+          "finish session",
+          "finish the session",
+          "goodbye",
+          "bye",
+          "i'm done",
+          "we're done",
+          "that's all",
+          "that's it",
+          "i'm good for now",
+          "i'm good",
+          "thank you"
+        ];
+        
+        const containsEndSessionPhrase = endSessionPhrases.some(phrase => content.includes(phrase));
+        
+        if (containsEndSessionPhrase && 
+            Object.keys(functionRegistry.current).includes('endSession')) {
+          
+          // Add a delay to give the AI a chance to respond
+          setTimeout(() => {
+            // Check if the AI has already responded
+            const lastMessage = conversation[conversation.length - 1];
+            
+            // If the last message is still from the user, the AI hasn't responded
+            if (lastMessage && lastMessage.role === "user") {
+              console.log("🔴🔴🔴 USER EXPLICITLY REQUESTED TO END SESSION AND AI HASN'T RESPONDED");
+              
+              try {
+                const endSessionFn = functionRegistry.current['endSession'];
+                if (typeof endSessionFn === 'function') {
+                  console.log("🔴🔴🔴 CALLING ENDSESSION FUNCTION WITH REASON: user request");
+                  endSessionFn({ reason: "user request" });
+                }
+              } catch (error) {
+                console.error("🔴🔴🔴 ERROR CALLING ENDSESSION FUNCTION:", error);
+              }
+            }
+          }, 5000); // Wait 5 seconds for the AI to respond
+        }
+      }
+
       switch (msg.type) {
         case "response.content_part.added": {
+          // Handle content part added
+          logger.debug("Content part added:", msg.content_part);
+          
           // Handle text deltas
           if (msg.content_part && msg.content_part.type === "text") {
             const text = msg.content_part.text;
@@ -733,6 +908,96 @@ export default function useWebRTCAudioSession(
               if (lastMessage && lastMessage.role === "assistant" && !lastMessage.isFinal) {
                 // Append to existing message
                 lastMessage.text += text;
+                
+                // Check if the message indicates the AI wants to end the session
+                const fullText = lastMessage.text.toLowerCase();
+                
+                // Check for exact phrases
+                const endSessionPhrases = [
+                  "end our session", 
+                  "ending our session", 
+                  "session is now complete", 
+                  "conclude our session",
+                  "thank you for your time today",
+                  "session has ended",
+                  "end the session",
+                  "ending the session",
+                  "i'll end our session now",
+                  "i will end our session now",
+                  "i'll end the session now",
+                  "i will end the session now",
+                  "i'll end our session",
+                  "i will end our session",
+                  "goodbye",
+                  "this concludes our session",
+                  "feel free to reach out",
+                  "thank you for sharing"
+                ];
+                
+                // Check for combinations of phrases that together indicate session end
+                const endSessionIndicators = [
+                  "thank you",
+                  "completed",
+                  "assessment",
+                  "end",
+                  "session",
+                  "take care",
+                  "reach out",
+                  "later",
+                  "goodbye"
+                ];
+                
+                // Count how many indicators are present
+                const indicatorCount = endSessionIndicators.filter(indicator => 
+                  fullText.includes(indicator)
+                ).length;
+                
+                // If at least 3 indicators are present, consider it an end session intent
+                const hasMultipleIndicators = indicatorCount >= 3;
+                
+                const containsEndSessionPhrase = endSessionPhrases.some(phrase => fullText.includes(phrase));
+                
+                // If the message contains an end session phrase and the endSession function is registered,
+                // call it automatically
+                if ((containsEndSessionPhrase || hasMultipleIndicators) && 
+                    Object.keys(functionRegistry.current).includes('endSession') && 
+                    !endSessionCalledMessages.current.has(lastMessage.id)) {
+                  
+                  // Mark that we've called endSession for this message to avoid calling it multiple times
+                  endSessionCalledMessages.current.add(lastMessage.id);
+                  
+                  // Extract a reason from the message if possible
+                  let reason = "AI expressed intent to end session";
+                  
+                  if (fullText.includes("assessment complete")) {
+                    reason = "assessment complete";
+                  } else if (fullText.includes("patient request")) {
+                    reason = "patient request";
+                  } else if (fullText.includes("recommendations provided")) {
+                    reason = "recommendations provided";
+                  } else if (fullText.includes("completed the assessment")) {
+                    reason = "assessment complete";
+                  }
+                  
+                  // Add a delay to ensure we have the complete message
+                  setTimeout(() => {
+                    try {
+                      console.log("🔴🔴🔴 AUTO-CALLING ENDSESSION FUNCTION WITH REASON:", reason);
+                      console.log("🔴🔴🔴 MESSAGE THAT TRIGGERED END SESSION:", fullText);
+                      console.log("🔴🔴🔴 INDICATOR COUNT:", indicatorCount);
+                      console.log("🔴🔴🔴 CONTAINS END SESSION PHRASE:", containsEndSessionPhrase);
+                      console.log("🔴🔴🔴 HAS MULTIPLE INDICATORS:", hasMultipleIndicators);
+                      
+                      const endSessionFn = functionRegistry.current['endSession'];
+                      if (typeof endSessionFn === 'function') {
+                        endSessionFn({ reason });
+                      }
+                    } catch (error) {
+                      console.error("🔴🔴🔴 ERROR AUTO-CALLING ENDSESSION FUNCTION:", error);
+                    }
+                  }, 2000); // Longer delay to ensure the message is fully displayed and processed
+                }
+                
                 return existingConversation;
               } else {
                 // Create a new message
@@ -752,7 +1017,155 @@ export default function useWebRTCAudioSession(
           break;
         }
         
-        // Handle text deltas in text-only mode
+        case "response.function_call.started": {
+          // Handle function call started
+          logger.info("Function call started:", msg.function_call);
+          console.log("🔴🔴🔴 FUNCTION CALL STARTED:", msg.function_call);
+          break;
+        }
+        
+        case "response.function_call.arguments.delta": {
+          // Handle function call arguments delta
+          logger.debug("Function call arguments delta:", msg.delta);
+          break;
+        }
+        
+        case "response.function_call.arguments.done": {
+          // Handle function call arguments done
+          logger.info("Function call arguments done:", msg.function_call);
+          console.log("🔴🔴🔴 FUNCTION CALL ARGUMENTS DONE:", msg.function_call);
+          
+          // Extract function name and arguments
+          const functionName = msg.function_call.name;
+          const functionArgs = JSON.parse(msg.function_call.arguments);
+          
+          console.log("🔴🔴🔴 EXECUTING FUNCTION:", functionName, "WITH ARGS:", functionArgs);
+          
+          // Check if the function exists in the registry
+          if (Object.keys(functionRegistry.current).includes(functionName)) {
+            console.log(`🔴🔴🔴 FUNCTION '${functionName}' EXISTS IN REGISTRY`);
+            const fn = functionRegistry.current[functionName];
+            
+            if (typeof fn === 'function') {
+              try {
+                // Execute the function
+                const result = await fn(functionArgs);
+                console.log("🔴🔴🔴 FUNCTION RESULT:", result);
+                
+                // Send the function result back to the AI
+                const response = {
+                  type: "conversation.item.create",
+                  item: {
+                    type: "function_call_output",
+                    call_id: msg.function_call.id,
+                    output: JSON.stringify(result),
+                  },
+                };
+                console.log("🔴🔴🔴 SENDING FUNCTION RESULT TO AI:", response);
+                dataChannelRef.current?.send(JSON.stringify(response));
+                
+                // Create a new response
+                const responseCreate = {
+                  type: "response.create",
+                };
+                console.log("🔴🔴🔴 SENDING RESPONSE CREATE:", responseCreate);
+                dataChannelRef.current?.send(JSON.stringify(responseCreate));
+              } catch (error) {
+                console.error("🔴🔴🔴 ERROR EXECUTING FUNCTION:", error);
+                
+                // Try to send an error response
+                try {
+                  const errorResponse = {
+                    type: "conversation.item.create",
+                    item: {
+                      type: "function_call_output",
+                      call_id: msg.function_call.id,
+                      output: JSON.stringify({
+                        success: false,
+                        error: `Error executing function: ${error instanceof Error ? error.message : 'Unknown error'}`
+                      }),
+                    },
+                  };
+                  console.log("🔴🔴🔴 SENDING ERROR RESPONSE:", errorResponse);
+                  dataChannelRef.current?.send(JSON.stringify(errorResponse));
+                  
+                  const responseCreate = {
+                    type: "response.create",
+                  };
+                  dataChannelRef.current?.send(JSON.stringify(responseCreate));
+                } catch (responseError) {
+                  console.error("🔴🔴🔴 ERROR SENDING ERROR RESPONSE:", responseError);
+                }
+              }
+            } else {
+              console.error(`🔴🔴🔴 '${functionName}' EXISTS IN REGISTRY BUT IS NOT A FUNCTION:`, typeof fn);
+            }
+          } else {
+            console.error(`🔴🔴🔴 FUNCTION '${functionName}' NOT FOUND IN REGISTRY`);
+          }
+          break;
+        }
+        
+        // Also handle the underscore version of the event names
+        case "response.function_call_arguments.done": {
+          // Handle function call arguments done
+          logger.info("Function call arguments done (underscore version):", msg);
+          console.log("🔴🔴🔴 FUNCTION CALL ARGUMENTS DONE (UNDERSCORE VERSION):", msg);
+          
+          // Extract function name and arguments
+          const functionName = msg.name || (msg.function_call && msg.function_call.name);
+          const argumentsStr = msg.arguments || (msg.function_call && msg.function_call.arguments);
+          
+          if (!functionName || !argumentsStr) {
+            console.error("🔴🔴🔴 MISSING FUNCTION NAME OR ARGUMENTS:", msg);
+            break;
+          }
+          
+          try {
+            const functionArgs = JSON.parse(argumentsStr);
+            console.log("🔴🔴🔴 EXECUTING FUNCTION:", functionName, "WITH ARGS:", functionArgs);
+            
+            // Check if the function exists in the registry
+            if (Object.keys(functionRegistry.current).includes(functionName)) {
+              console.log(`🔴🔴🔴 FUNCTION '${functionName}' EXISTS IN REGISTRY`);
+              const fn = functionRegistry.current[functionName];
+              
+              if (typeof fn === 'function') {
+                try {
+                  // Execute the function
+                  const result = await fn(functionArgs);
+                  console.log("🔴🔴🔴 FUNCTION RESULT:", result);
+                  
+                  // Send the function result back to the AI
+                  const response = {
+                    type: "conversation.item.create",
+                    item: {
+                      type: "function_call_output",
+                      call_id: msg.call_id,
+                      output: JSON.stringify(result),
+                    },
+                  };
+                  console.log("🔴🔴🔴 SENDING FUNCTION RESULT TO AI:", response);
+                  dataChannelRef.current?.send(JSON.stringify(response));
+                  
+                  // Create a new response
+                  const responseCreate = {
+                    type: "response.create",
+                  };
+                  console.log("🔴🔴🔴 SENDING RESPONSE CREATE:", responseCreate);
+                  dataChannelRef.current?.send(JSON.stringify(responseCreate));
+                } catch (error) {
+                  console.error("🔴🔴🔴 ERROR EXECUTING FUNCTION:", error);
+                }
+              }
+            }
+          } catch (error) {
+            console.error("🔴🔴🔴 ERROR PARSING FUNCTION ARGUMENTS:", error);
+          }
+          break;
+        }
+        
+        // Handle text deltas
         case "response.text.delta": {
           const text = msg.delta;
           logger.debug("Received text delta:", text);
@@ -862,27 +1275,103 @@ export default function useWebRTCAudioSession(
         case "function_call": {
           // Handle function calls from the assistant
           logger.info("Function call from assistant:", msg.name);
+          console.log("🔴🔴🔴 FUNCTION CALL RECEIVED:", msg.name);
+          console.log("🔴🔴🔴 FUNCTION ARGUMENTS:", msg.arguments);
+          console.log("🔴🔴🔴 ALL REGISTERED FUNCTIONS:", Object.keys(functionRegistry.current));
           
-          const fn = functionRegistry.current[msg.name];
-          if (fn) {
-            const args = JSON.parse(msg.arguments);
-            const result = await fn(args);
+          // Check if the function exists in the registry
+          if (Object.keys(functionRegistry.current).includes(msg.name)) {
+            console.log(`🔴🔴🔴 FUNCTION '${msg.name}' EXISTS IN REGISTRY`);
+            const fn = functionRegistry.current[msg.name];
+            
+            if (typeof fn === 'function') {
+              console.log(`🔴🔴🔴 '${msg.name}' IS A VALID FUNCTION`);
+              
+              try {
+                const args = JSON.parse(msg.arguments);
+                console.log("🔴🔴🔴 PARSED ARGUMENTS:", args);
+                
+                // Special handling for endSession
+                if (msg.name === "endSession") {
+                  console.log("🔴🔴🔴 EXECUTING END SESSION FUNCTION WITH ARGS:", args);
+                }
+                
+                const result = await fn(args);
+                console.log("🔴🔴🔴 FUNCTION RESULT:", result);
 
-            // Respond with function output
-            const response = {
-              type: "conversation.item.create",
-              item: {
-                type: "function_call_output",
-                call_id: msg.call_id,
-                output: JSON.stringify(result),
-              },
-            };
-            dataChannelRef.current?.send(JSON.stringify(response));
-
-            const responseCreate = {
-              type: "response.create",
-            };
-            dataChannelRef.current?.send(JSON.stringify(responseCreate));
+                // Respond with function output
+                const response = {
+                  type: "conversation.item.create",
+                  item: {
+                    type: "function_call_output",
+                    call_id: msg.call_id,
+                    output: JSON.stringify(result),
+                  },
+                };
+                console.log("🔴🔴🔴 SENDING FUNCTION RESULT TO AI:", response);
+                dataChannelRef.current?.send(JSON.stringify(response));
+                
+                const responseCreate = {
+                  type: "response.create",
+                };
+                console.log("🔴🔴🔴 SENDING RESPONSE CREATE:", responseCreate);
+                dataChannelRef.current?.send(JSON.stringify(responseCreate));
+              } catch (error) {
+                console.error("🔴🔴🔴 ERROR EXECUTING FUNCTION:", error);
+                
+                // Try to send an error response
+                try {
+                  const errorResponse = {
+                    type: "conversation.item.create",
+                    item: {
+                      type: "function_call_output",
+                      call_id: msg.call_id,
+                      output: JSON.stringify({
+                        success: false,
+                        error: `Error executing function: ${error instanceof Error ? error.message : 'Unknown error'}`
+                      }),
+                    },
+                  };
+                  console.log("🔴🔴🔴 SENDING ERROR RESPONSE:", errorResponse);
+                  dataChannelRef.current?.send(JSON.stringify(errorResponse));
+                  
+                  const responseCreate = {
+                    type: "response.create",
+                  };
+                  dataChannelRef.current?.send(JSON.stringify(responseCreate));
+                } catch (responseError) {
+                  console.error("🔴🔴🔴 ERROR SENDING ERROR RESPONSE:", responseError);
+                }
+              }
+            } else {
+              console.error(`🔴🔴🔴 '${msg.name}' EXISTS IN REGISTRY BUT IS NOT A FUNCTION:`, typeof fn);
+            }
+          } else {
+            console.error(`🔴🔴🔴 FUNCTION '${msg.name}' NOT FOUND IN REGISTRY`);
+            
+            // Try to send an error response
+            try {
+              const errorResponse = {
+                type: "conversation.item.create",
+                item: {
+                  type: "function_call_output",
+                  call_id: msg.call_id,
+                  output: JSON.stringify({
+                    success: false,
+                    error: `Function '${msg.name}' not found`
+                  }),
+                },
+              };
+              console.log("🔴🔴🔴 SENDING FUNCTION NOT FOUND RESPONSE:", errorResponse);
+              dataChannelRef.current?.send(JSON.stringify(errorResponse));
+              
+              const responseCreate = {
+                type: "response.create",
+              };
+              dataChannelRef.current?.send(JSON.stringify(responseCreate));
+            } catch (responseError) {
+              console.error("🔴🔴🔴 ERROR SENDING FUNCTION NOT FOUND RESPONSE:", responseError);
+            }
           }
           break;
         }
@@ -1817,6 +2306,7 @@ export default function useWebRTCAudioSession(
     stopSession,
     handleStartStopClick,
     registerFunction,
+    listRegisteredFunctions,
     msgs,
     currentVolume,
     conversation,

@@ -41,6 +41,7 @@ interface CancerChatInterfaceProps {
   currentVolume?: number; // Add this to receive the current audio volume
   isConnecting?: boolean; // Add this to indicate connection in progress
   connectionStatus?: string; // Add this to show connection status
+  sessionEndReason?: string | null; // Add this to display the reason for ending the session
 }
 
 // Define types for API response
@@ -76,7 +77,8 @@ export function CancerChatInterface({
   customPreSessionContent,
   currentVolume = 0, // Default to 0 if not provided
   isConnecting = false,
-  connectionStatus = ""
+  connectionStatus = "",
+  sessionEndReason
 }: CancerChatInterfaceProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [defaultSuggestions, setDefaultSuggestions] = useState<string[]>([
@@ -538,6 +540,15 @@ export function CancerChatInterface({
                     <p className="text-cancer-text text-base bg-transparent px-4 py-2 inline-block">
                       Thank you for sharing your journey with us. Your responses have been recorded.
                     </p>
+                    
+                    {/* Display session end reason if available */}
+                    {sessionEndReason && (
+                      <div className="mt-2 mb-4">
+                        <p className="text-cancer-text text-sm bg-transparent px-4 py-1 inline-block">
+                          <span className="font-medium">Session ended:</span> {sessionEndReason}
+                        </p>
+                      </div>
+                    )}
                     
                     {/* Transcript and Assessment Actions */}
                     <div className="flex flex-wrap justify-center gap-3 mt-4">

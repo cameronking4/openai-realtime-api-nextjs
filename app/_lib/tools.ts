@@ -60,6 +60,15 @@ const toolDefinitions = {
                 description: 'The URL to scrape'
             }
         }
+    },
+    endSession: {
+        description: 'Ends the current session with the patient. Use this when the assessment is complete or when the patient explicitly requests to end the session.',
+        parameters: {
+            reason: {
+                type: 'string',
+                description: 'The reason for ending the session (e.g., "assessment complete", "patient request", etc.)'
+            }
+        }
     }
 } as const;
 

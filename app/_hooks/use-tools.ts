@@ -6,7 +6,10 @@ import { animate as framerAnimate } from "framer-motion"
 import { useTranslations } from "@/app/_components/shared/translations-context"
 import FirecrawlApp, { ScrapeResponse } from '@mendable/firecrawl-js';
 
-export const useToolsFunctions = () => {
+// Define a type for the endSessionCallback
+type EndSessionCallback = (reason: string) => void;
+
+export const useToolsFunctions = (endSessionCallback?: EndSessionCallback) => {
   const { t } = useTranslations();
 
   const timeFunction = () => {
@@ -190,12 +193,65 @@ export const useToolsFunctions = () => {
     }
   }
 
+  const endSession = ({ reason }: { reason: string }) => {
+    console.log("🔴🔴🔴 ENDSESSION FUNCTION CALLED WITH REASON:", reason);
+    
+    try {
+      // If a callback was provided, call it directly with the reason
+      if (endSessionCallback) {
+        console.log("🔴🔴🔴 CALLING ENDSESSION CALLBACK DIRECTLY WITH REASON:", reason);
+        endSessionCallback(reason);
+      } else {
+        console.log("🔴🔴🔴 NO ENDSESSION CALLBACK PROVIDED, USING EVENT DISPATCH");
+        // Create a custom event as a fallback
+        const endSessionEvent = new CustomEvent('ai-end-session', { 
+          detail: { reason } 
+        });
+        
+        // Dispatch the event to be caught by event listeners
+        window.dispatchEvent(endSessionEvent);
+        console.log("🔴🔴🔴 DISPATCHED AI-END-SESSION EVENT");
+      }
+      
+      toast.info("Session ending", {
+        description: `The AI assistant is ending the session: ${reason}`,
+      });
+      
+      return {
+        success: true,
+        message: `I've initiated the end of our session. ${reason}. Thank you for your time today.`
+      };
+    } catch (error) {
+      console.error("🔴🔴🔴 ERROR IN ENDSESSION FUNCTION:", error);
+      
+      // Try the global function as a last resort
+      try {
+        if ((window as any).forceEndSession) {
+          console.log("🔴🔴🔴 LAST RESORT: CALLING GLOBAL FORCEENDSESSION FUNCTION WITH REASON:", reason);
+          (window as any).forceEndSession(reason);
+        }
+      } catch (e) {
+        console.error("🔴🔴🔴 EVEN THE LAST RESORT FAILED:", e);
+      }
+      
+      toast.error("Error ending session", {
+        description: "There was an error ending the session. Please try again or end it manually.",
+      });
+      
+      return {
+        success: false,
+        message: "I tried to end our session, but there was a technical issue. You may need to end it manually by clicking the 'End Session' button."
+      };
+    }
+  }
+
   return {
     timeFunction,
     backgroundFunction,
     partyFunction,
     launchWebsite,
     copyToClipboard,
-    scrapeWebsite
+    scrapeWebsite,
+    endSession
   }
 }

@@ -3,6 +3,25 @@ import fs from 'fs';
 import path from 'path';
 import { PSYCHO_ONCOLOGY_ASSESSMENT_PROMPT } from "../../../prompts/ai-conversation-templates";
 
+// Define the tools that will be available to the AI
+export const tools = [
+  {
+    type: "function",
+    name: "endSession",
+    description: "Ends the current session with the patient. Use this when the assessment is complete or when the patient explicitly requests to end the session.",
+    parameters: {
+      type: "object",
+      properties: {
+        reason: {
+          type: "string",
+          description: "The reason for ending the session (e.g., 'assessment complete', 'patient request', etc.)"
+        }
+      },
+      required: ["reason"]
+    }
+  }
+];
+
 // Read the API key directly from .env.local file or .env file
 let apiKey = '';
 try {
@@ -68,6 +87,11 @@ export async function POST(request: Request) {
             voice: "alloy",
             modalities: modalities,
             instructions: PSYCHO_ONCOLOGY_ASSESSMENT_PROMPT,
+            tools: tools,
+            // Options for tool_choice:
+            // - "auto": Let the model decide when to call functions
+            // - "required": Force the model to call a function
+            // - { type: "function", function: { name: "endSession" } }: Force the model to call a specific function
             tool_choice: "auto",
         };
         
