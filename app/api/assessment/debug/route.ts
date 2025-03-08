@@ -1,10 +1,54 @@
 import { NextResponse } from 'next/server';
 import { Anthropic } from '@anthropic-ai/sdk';
+import fs from 'fs';
 
-// Initialize the Anthropic client with API key from environment variables
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
+// Helper function to read the Anthropic API key directly from .env file
+function readAnthropicApiKey(): string | null {
+  try {
+    // Try to read from .env.local first
+    if (fs.existsSync('.env.local')) {
+      const envLocalContent = fs.readFileSync('.env.local', 'utf8');
+      const match = envLocalContent.match(/ANTHROPIC_API_KEY=([^\n]+)/);
+      if (match && match[1]) {
+        console.log('DEBUG: Found API key in .env.local');
+        return match[1].trim();
+      }
+    }
+    
+    // Then try the regular .env file
+    if (fs.existsSync('.env')) {
+      const envContent = fs.readFileSync('.env', 'utf8');
+      const match = envContent.match(/ANTHROPIC_API_KEY=([^\n]+)/);
+      if (match && match[1]) {
+        console.log('DEBUG: Found API key in .env');
+        return match[1].trim();
+      }
+    }
+    
+    // Fallback to process.env
+    if (process.env.ANTHROPIC_API_KEY) {
+      console.log('DEBUG: Using API key from process.env');
+      return process.env.ANTHROPIC_API_KEY;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('DEBUG: Error reading API key from .env files:', error);
+    
+    // Fallback to process.env
+    if (process.env.ANTHROPIC_API_KEY) {
+      console.log('DEBUG: Falling back to API key from process.env after error');
+      return process.env.ANTHROPIC_API_KEY;
+    }
+    
+    return null;
+  }
+}
+
+// Don't initialize the Anthropic client here, do it in the handler
+// const anthropic = new Anthropic({
+//   apiKey: process.env.ANTHROPIC_API_KEY || '',
+// });
 
 /**
  * GET handler for debugging the assessment API
@@ -17,20 +61,16 @@ export async function GET() {
     console.log('DEBUG: Environment:', process.env.NODE_ENV);
     console.log('DEBUG: Vercel environment:', process.env.VERCEL === '1' ? 'true' : 'false');
     
-    // Get and mask API key for logging
-    const apiKey = process.env.ANTHROPIC_API_KEY || '';
-    const maskedKey = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)}` : 'not set';
-    console.log(`DEBUG: Using Anthropic API key: ${maskedKey}`);
-    console.log(`DEBUG: API key length: ${apiKey.length}`);
+    // Get API key directly from file instead of environment
+    const apiKey = readAnthropicApiKey();
     
-    // Check if API key is available
     if (!apiKey) {
-      console.error('DEBUG: ANTHROPIC_API_KEY not found in environment variables');
+      console.error('DEBUG: ANTHROPIC_API_KEY not found in environment variables or .env files');
       return NextResponse.json(
         { 
           success: false,
           error: 'API key configuration error',
-          details: 'The Anthropic API key is missing. Please add ANTHROPIC_API_KEY to your environment variables.',
+          details: 'The Anthropic API key is missing. Please add ANTHROPIC_API_KEY to your environment variables or .env files.',
           environment: process.env.NODE_ENV || 'unknown',
           vercel: process.env.VERCEL === '1' ? 'true' : 'false',
           envVars: Object.keys(process.env).filter(key => 
@@ -40,6 +80,12 @@ export async function GET() {
         { status: 500 }
       );
     }
+    
+    // Get and mask API key for logging
+    const maskedKey = apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 4)}` : 'not set';
+    console.log(`DEBUG: Using Anthropic API key: ${maskedKey}`);
+    console.log(`DEBUG: API key length: ${apiKey.length}`);
+    console.log(`DEBUG: API key prefix: ${apiKey.substring(0, 10)}`);
     
     // Check if the API key looks valid (basic format check)
     const isValidFormat = apiKey.startsWith('sk-ant-') && apiKey.length > 20;
@@ -57,6 +103,11 @@ export async function GET() {
         { status: 400 }
       );
     }
+    
+    // Initialize Anthropic client with direct API key
+    const anthropic = new Anthropic({
+      apiKey: apiKey,
+    });
     
     // Try a simple API call to test connectivity
     try {

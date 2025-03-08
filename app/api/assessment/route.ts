@@ -3,10 +3,53 @@ import { Anthropic } from '@anthropic-ai/sdk';
 import { AI_ASSESSMENT_PROMPT } from '@/prompts/ai-conversation-templates';
 import fs from 'fs';
 
-// Initialize the Anthropic client with API key from environment variables
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
+// Helper function to read the Anthropic API key directly from .env file
+function readAnthropicApiKey(): string | null {
+  try {
+    // Try to read from .env.local first
+    if (fs.existsSync('.env.local')) {
+      const envLocalContent = fs.readFileSync('.env.local', 'utf8');
+      const match = envLocalContent.match(/ANTHROPIC_API_KEY=([^\n]+)/);
+      if (match && match[1]) {
+        console.log('Found API key in .env.local');
+        return match[1].trim();
+      }
+    }
+    
+    // Then try the regular .env file
+    if (fs.existsSync('.env')) {
+      const envContent = fs.readFileSync('.env', 'utf8');
+      const match = envContent.match(/ANTHROPIC_API_KEY=([^\n]+)/);
+      if (match && match[1]) {
+        console.log('Found API key in .env');
+        return match[1].trim();
+      }
+    }
+    
+    // Fallback to process.env
+    if (process.env.ANTHROPIC_API_KEY) {
+      console.log('Using API key from process.env');
+      return process.env.ANTHROPIC_API_KEY;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error reading API key from .env files:', error);
+    
+    // Fallback to process.env
+    if (process.env.ANTHROPIC_API_KEY) {
+      console.log('Falling back to API key from process.env after error');
+      return process.env.ANTHROPIC_API_KEY;
+    }
+    
+    return null;
+  }
+}
+
+// Initialize the Anthropic client - Don't initialize here, do it in the handler
+// const anthropic = new Anthropic({
+//   apiKey: process.env.ANTHROPIC_API_KEY || '',
+// });
 
 // Helper function to log environment information
 function logEnvironmentInfo() {
@@ -14,17 +57,18 @@ function logEnvironmentInfo() {
   console.log('Vercel environment:', process.env.VERCEL === '1' ? 'true' : 'false');
   
   // Log API key information (safely)
-  const apiKey = process.env.ANTHROPIC_API_KEY || '';
+  const apiKey = readAnthropicApiKey() || '';
   if (apiKey) {
     const maskedKey = apiKey.substring(0, 5) + '...' + apiKey.substring(apiKey.length - 4);
     console.log(`Using Anthropic API key: ${maskedKey}`);
     console.log(`API key length: ${apiKey.length}`);
+    console.log(`API key prefix: ${apiKey.substring(0, 10)}`);
     
     // Check if the API key looks valid (basic format check)
     const isValidFormat = apiKey.startsWith('sk-ant-') && apiKey.length > 20;
     console.log(`API key format appears valid: ${isValidFormat}`);
   } else {
-    console.log('ANTHROPIC_API_KEY not found in environment variables');
+    console.log('ANTHROPIC_API_KEY not found');
   }
 }
 
@@ -48,6 +92,31 @@ export async function POST(request: Request) {
   try {
     // Log environment information
     logEnvironmentInfo();
+    
+    // Get API key directly from file instead of environment
+    const apiKey = readAnthropicApiKey();
+    
+    if (!apiKey) {
+      console.error('ANTHROPIC_API_KEY not found in environment variables or .env files');
+      return NextResponse.json(
+        { 
+          error: 'API key configuration error',
+          details: 'The Anthropic API key is missing. Please add ANTHROPIC_API_KEY to your environment variables or .env files.',
+          environment: process.env.NODE_ENV || 'unknown',
+          vercel: process.env.VERCEL === '1' ? 'true' : 'false'
+        },
+        { status: 500 }
+      );
+    }
+    
+    // Log API key information (safely)
+    const maskedKey = apiKey.substring(0, 5) + '...' + apiKey.substring(apiKey.length - 4);
+    console.log(`Using Anthropic API key for request: ${maskedKey}`);
+    
+    // Initialize Anthropic client with direct API key
+    const anthropic = new Anthropic({
+      apiKey: apiKey,
+    });
     
     // Parse request body with explicit error handling
     let transcript: string;
@@ -104,20 +173,6 @@ export async function POST(request: Request) {
           vercel: process.env.VERCEL === '1' ? 'true' : 'false'
         },
         { status: 400 }
-      );
-    }
-
-    // Check if API key is available
-    if (!process.env.ANTHROPIC_API_KEY) {
-      console.error('ANTHROPIC_API_KEY not found in environment variables');
-      return NextResponse.json(
-        { 
-          error: 'API key configuration error',
-          details: 'The Anthropic API key is missing. Please add ANTHROPIC_API_KEY to your environment variables.',
-          environment: process.env.NODE_ENV || 'unknown',
-          vercel: process.env.VERCEL === '1' ? 'true' : 'false'
-        },
-        { status: 500 }
       );
     }
 
