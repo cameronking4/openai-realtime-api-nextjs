@@ -1,37 +1,5 @@
 import { NextResponse } from 'next/server';
-
-// Custom function to test Anthropic API directly without the SDK
-async function testAnthropicAPI(apiKey: string) {
-  console.log('DEBUG: Testing Anthropic API directly...');
-  
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-3-7-sonnet-20250219',
-      max_tokens: 50,
-      temperature: 0.7,
-      messages: [
-        {
-          role: 'user',
-          content: 'Hello, this is a test message to verify the API key is working.'
-        }
-      ]
-    })
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`DEBUG: Anthropic API error: ${response.status} - ${errorText}`);
-    throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
-  }
-  
-  return await response.json();
-}
+import { Anthropic } from '@anthropic-ai/sdk';
 
 /**
  * GET handler for debugging the assessment API
@@ -87,10 +55,24 @@ export async function GET() {
       );
     }
     
+    // Initialize Anthropic client with proper authentication
+    const anthropic = new Anthropic({
+      apiKey: apiKey,
+    });
+    
     // Try a simple API call to test connectivity
     try {
       console.log('DEBUG: Testing API key with a simple request...');
-      const response = await testAnthropicAPI(apiKey);
+      const response = await anthropic.messages.create({
+        model: 'claude-3-7-sonnet-20250219',
+        max_tokens: 50,
+        messages: [
+          {
+            role: 'user',
+            content: 'Hello, this is a test message to verify the API key is working.',
+          },
+        ],
+      });
       
       console.log('DEBUG: Test API call successful!', response.id);
       
@@ -103,7 +85,7 @@ export async function GET() {
           responseId: response.id,
           environment: process.env.NODE_ENV || 'unknown',
           vercel: process.env.VERCEL === '1' ? 'true' : 'false',
-          textPreview: response.content[0].text || 'No text content',
+          textPreview: response.content[0].type === 'text' ? response.content[0].text.substring(0, 100) : 'No text content',
         }
       });
     } catch (apiError: any) {
