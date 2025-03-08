@@ -33,12 +33,31 @@ export async function POST(request: Request) {
     // Log environment information
     logEnvironmentInfo();
     
-    // Parse request body
-    const { transcript } = await request.json();
-    
-    if (!transcript) {
+    // Parse request body with explicit error handling
+    let transcript: string;
+    try {
+      const body = await request.json();
+      transcript = body.transcript;
+      
+      if (!transcript) {
+        console.error('Transcript is missing from request body');
+        return NextResponse.json(
+          { error: 'Transcript is required' },
+          { status: 400 }
+        );
+      }
+      
+      // Log transcript length for debugging
+      console.log(`Received transcript with length: ${transcript.length} characters`);
+    } catch (parseError: any) {
+      console.error('Error parsing request body:', parseError);
       return NextResponse.json(
-        { error: 'Transcript is required' },
+        { 
+          error: 'Invalid request body',
+          details: parseError.message || 'Could not parse JSON request body',
+          environment: process.env.NODE_ENV || 'unknown',
+          vercel: process.env.VERCEL === '1' ? 'true' : 'false'
+        },
         { status: 400 }
       );
     }
