@@ -55,9 +55,15 @@ export default function CancerChatPage() {
   } = useWebRTCAudioSession(voice, tools);
 
   // Handle ending a session
-  const handleEndSession = useCallback((reason?: string) => {
+  const handleEndSession = useCallback((reason?: any) => {
     try {
       console.log("🔴🔴🔴 HANDLEENDSESSION FUNCTION CALLED");
+      
+      // Check if reason is a React event object (has _reactName property)
+      if (reason && reason._reactName) {
+        console.log("🔴🔴🔴 REASON IS A REACT EVENT, USING DEFAULT REASON");
+        reason = "User ended the session";
+      }
       
       // Store the reason for ending the session
       if (reason) {
