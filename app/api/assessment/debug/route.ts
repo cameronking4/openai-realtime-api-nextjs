@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { testAnthropicAPI } from '@/app/_lib/anthropic-client';
+import { testAnthropicAPI } from '../../_lib/anthropic-client';
 
 /**
  * GET handler for debugging the assessment API

@@ -34,7 +34,7 @@ export function createAnthropicClient(apiKey: string): Anthropic {
 export async function callAnthropicAPI(
   apiKey: string, 
   prompt: string,
-  model: string = 'claude-3-7-sonnet-20250219',
+  model: string = 'claude-3-haiku-20240307',
   maxTokens: number = 4000
 ) {
   try {
@@ -70,9 +70,9 @@ export async function testAnthropicAPI(apiKey: string) {
     // Create the client
     const anthropic = createAnthropicClient(apiKey);
     
-    // Make a simple test API call
+    // Make a simple test API call with the faster haiku model
     return await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
+      model: 'claude-3-haiku-20240307',
       max_tokens: 50,
       messages: [
         {
