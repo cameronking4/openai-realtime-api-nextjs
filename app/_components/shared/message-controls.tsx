@@ -1,6 +1,6 @@
 import Transcriber from "@/app/_components/ui/transcriber"
 import { Conversation } from "@/app/_lib/conversations"
-import { Message as MessageType } from "@/types"
+import { Message as MessageType } from "@/app/_types"
 
 export function MessageControls({ conversation, msgs }: { conversation: Conversation[], msgs: MessageType[] }) {
   if (conversation.length === 0) return null
