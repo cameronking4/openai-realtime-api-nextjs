@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import AudioProcessor from './audio-processor';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Switch } from './ui/switch';
-import { Label } from './ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/_components/ui/card';
+import { Switch } from '@/app/_components/ui/switch';
+import { Label } from '@/app/_components/ui/label';
 
 interface AudioSettingsProps {
   // Add your props here
