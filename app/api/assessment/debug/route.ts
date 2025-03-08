@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { testAnthropicAPI } from '../../_lib/anthropic-client';
+import { testAnthropicAPI } from '@/app/_lib/anthropic-client';
 
 /**
  * GET handler for debugging the assessment API
@@ -67,7 +67,7 @@ export async function GET() {
         success: true,
         message: 'Anthropic API test successful',
         details: {
-          model: 'claude-3-7-sonnet-20250219',
+          model: 'claude-3-haiku-20240307',
           responseId: response.id,
           environment: process.env.NODE_ENV || 'unknown',
           vercel: process.env.VERCEL === '1' ? 'true' : 'false',
