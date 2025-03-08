@@ -2,7 +2,7 @@
  * Custom Anthropic client to ensure proper API key formatting
  */
 
-import { Anthropic } from '@anthropic-ai/sdk';
+import Anthropic from '@anthropic-ai/sdk';
 
 /**
  * Creates a sanitized Anthropic client that ensures the API key is properly formatted
