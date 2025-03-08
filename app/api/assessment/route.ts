@@ -1,76 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { AI_ASSESSMENT_PROMPT } from '@/prompts/ai-conversation-templates';
-import fs from 'fs';
-
-// Helper function to read the Anthropic API key directly from .env file
-function readAnthropicApiKey(): string | null {
-  try {
-    // Try to read from .env.local first
-    if (fs.existsSync('.env.local')) {
-      const envLocalContent = fs.readFileSync('.env.local', 'utf8');
-      const match = envLocalContent.match(/ANTHROPIC_API_KEY=([^\n]+)/);
-      if (match && match[1]) {
-        console.log('Found API key in .env.local');
-        return match[1].trim();
-      }
-    }
-    
-    // Then try the regular .env file
-    if (fs.existsSync('.env')) {
-      const envContent = fs.readFileSync('.env', 'utf8');
-      const match = envContent.match(/ANTHROPIC_API_KEY=([^\n]+)/);
-      if (match && match[1]) {
-        console.log('Found API key in .env');
-        return match[1].trim();
-      }
-    }
-    
-    // Fallback to process.env
-    if (process.env.ANTHROPIC_API_KEY) {
-      console.log('Using API key from process.env');
-      return process.env.ANTHROPIC_API_KEY;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error reading API key from .env files:', error);
-    
-    // Fallback to process.env
-    if (process.env.ANTHROPIC_API_KEY) {
-      console.log('Falling back to API key from process.env after error');
-      return process.env.ANTHROPIC_API_KEY;
-    }
-    
-    return null;
-  }
-}
-
-// Initialize the Anthropic client - Don't initialize here, do it in the handler
-// const anthropic = new Anthropic({
-//   apiKey: process.env.ANTHROPIC_API_KEY || '',
-// });
-
-// Helper function to log environment information
-function logEnvironmentInfo() {
-  console.log('Environment:', process.env.NODE_ENV);
-  console.log('Vercel environment:', process.env.VERCEL === '1' ? 'true' : 'false');
-  
-  // Log API key information (safely)
-  const apiKey = readAnthropicApiKey() || '';
-  if (apiKey) {
-    const maskedKey = apiKey.substring(0, 5) + '...' + apiKey.substring(apiKey.length - 4);
-    console.log(`Using Anthropic API key: ${maskedKey}`);
-    console.log(`API key length: ${apiKey.length}`);
-    console.log(`API key prefix: ${apiKey.substring(0, 10)}`);
-    
-    // Check if the API key looks valid (basic format check)
-    const isValidFormat = apiKey.startsWith('sk-ant-') && apiKey.length > 20;
-    console.log(`API key format appears valid: ${isValidFormat}`);
-  } else {
-    console.log('ANTHROPIC_API_KEY not found');
-  }
-}
 
 // Helper function to truncate transcript if it's too large
 function truncateTranscript(transcript: string, maxLength: number = 10000): string {
@@ -90,18 +20,15 @@ function truncateTranscript(transcript: string, maxLength: number = 10000): stri
 
 export async function POST(request: Request) {
   try {
-    // Log environment information
-    logEnvironmentInfo();
-    
-    // Get API key directly from file instead of environment
-    const apiKey = readAnthropicApiKey();
+    // Get API key from environment (Vercel secrets in production)
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     
     if (!apiKey) {
-      console.error('ANTHROPIC_API_KEY not found in environment variables or .env files');
+      console.error('ANTHROPIC_API_KEY not found in environment variables');
       return NextResponse.json(
         { 
           error: 'API key configuration error',
-          details: 'The Anthropic API key is missing. Please add ANTHROPIC_API_KEY to your environment variables or .env files.',
+          details: 'The Anthropic API key is missing. Please add ANTHROPIC_API_KEY to your environment variables.',
           environment: process.env.NODE_ENV || 'unknown',
           vercel: process.env.VERCEL === '1' ? 'true' : 'false'
         },
@@ -111,9 +38,11 @@ export async function POST(request: Request) {
     
     // Log API key information (safely)
     const maskedKey = apiKey.substring(0, 5) + '...' + apiKey.substring(apiKey.length - 4);
-    console.log(`Using Anthropic API key for request: ${maskedKey}`);
+    console.log(`Using Anthropic API key: ${maskedKey}`);
+    console.log(`API key length: ${apiKey.length}`);
+    console.log(`API key prefix: ${apiKey.substring(0, 5)}`);
     
-    // Initialize Anthropic client with direct API key
+    // Initialize Anthropic client with direct API key in the exact same way as suggestions API
     const anthropic = new Anthropic({
       apiKey: apiKey,
     });
