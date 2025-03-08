@@ -726,26 +726,28 @@ export default function useWebRTCAudioSession(
             logger.debug("Received text delta:", text);
             
             // Update conversation with the text delta
-            const existingConversation = [...conversation];
-            const lastMessage = existingConversation[existingConversation.length - 1];
-            
-            if (lastMessage && lastMessage.role === "assistant" && !lastMessage.isFinal) {
-              // Append to existing message
-              lastMessage.text += text;
-              setConversation(existingConversation);
-            } else {
-              // Create a new message
-              setConversation([
-                ...existingConversation,
-                { 
-                  role: "assistant", 
-                  text: text, 
-                  id: uuidv4(),
-                  timestamp: new Date().toISOString(),
-                  isFinal: false
-                },
-              ]);
-            }
+            setConversation((prev) => {
+              const existingConversation = [...prev];
+              const lastMessage = existingConversation.length > 0 ? existingConversation[existingConversation.length - 1] : null;
+              
+              if (lastMessage && lastMessage.role === "assistant" && !lastMessage.isFinal) {
+                // Append to existing message
+                lastMessage.text += text;
+                return existingConversation;
+              } else {
+                // Create a new message
+                return [
+                  ...existingConversation,
+                  { 
+                    role: "assistant", 
+                    text: text, 
+                    id: uuidv4(),
+                    timestamp: new Date().toISOString(),
+                    isFinal: false
+                  },
+                ];
+              }
+            });
           }
           break;
         }
@@ -756,26 +758,28 @@ export default function useWebRTCAudioSession(
           logger.debug("Received text delta:", text);
           
           // Update conversation with the text delta
-          const existingConversation = [...conversation];
-          const lastMessage = existingConversation[existingConversation.length - 1];
-          
-          if (lastMessage && lastMessage.role === "assistant" && !lastMessage.isFinal) {
-            // Append to existing message
-            lastMessage.text += text;
-            setConversation(existingConversation);
-          } else {
-            // Create a new message
-            setConversation([
-              ...existingConversation,
-              { 
-                role: "assistant", 
-                text: text, 
-                id: uuidv4(),
-                timestamp: new Date().toISOString(),
-                isFinal: false
-              },
-            ]);
-          }
+          setConversation((prev) => {
+            const existingConversation = [...prev];
+            const lastMessage = existingConversation.length > 0 ? existingConversation[existingConversation.length - 1] : null;
+            
+            if (lastMessage && lastMessage.role === "assistant" && !lastMessage.isFinal) {
+              // Append to existing message
+              lastMessage.text += text;
+              return existingConversation;
+            } else {
+              // Create a new message
+              return [
+                ...existingConversation,
+                { 
+                  role: "assistant", 
+                  text: text, 
+                  id: uuidv4(),
+                  timestamp: new Date().toISOString(),
+                  isFinal: false
+                },
+              ];
+            }
+          });
           break;
         }
         
@@ -786,12 +790,17 @@ export default function useWebRTCAudioSession(
           setConversation((prev) => {
             if (prev.length === 0) return prev;
             const updated = [...prev];
-            updated[updated.length - 1].isFinal = true;
+            const lastMessage = updated[updated.length - 1];
             
-            // If the final text is provided and different from what we've accumulated,
-            // use the final text from the server
-            if (msg.text && updated[updated.length - 1].text !== msg.text) {
-              updated[updated.length - 1].text = msg.text;
+            // Only update if it's an assistant message
+            if (lastMessage.role === "assistant") {
+              lastMessage.isFinal = true;
+              
+              // If the final text is provided and different from what we've accumulated,
+              // use the final text from the server
+              if (msg.text && lastMessage.text !== msg.text) {
+                lastMessage.text = msg.text;
+              }
             }
             
             return updated;
