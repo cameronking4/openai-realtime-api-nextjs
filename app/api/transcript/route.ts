@@ -34,17 +34,42 @@ export async function POST(request: Request) {
       );
     }
     
-    // Save transcript to file
-    const filePath = path.join(TRANSCRIPTS_DIR, `${transcript.id}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(transcript, null, 2));
+    // Check if we're in a production environment (Vercel)
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
     
-    console.log(`Transcript saved to ${filePath}`);
-    
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Transcript saved successfully',
-      transcriptId: transcript.id
-    });
+    if (isProduction) {
+      // In production (Vercel), we can't write to the filesystem
+      console.log(`Production environment detected. Transcript ${transcript.id} would be saved, but filesystem is read-only.`);
+      
+      // Return success without actually writing to the filesystem
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Transcript received (not saved in production environment)',
+        transcriptId: transcript.id,
+        environment: 'production'
+      });
+    } else {
+      // In development, save transcript to file
+      try {
+        const filePath = path.join(TRANSCRIPTS_DIR, `${transcript.id}.json`);
+        fs.writeFileSync(filePath, JSON.stringify(transcript, null, 2));
+        
+        console.log(`Transcript saved to ${filePath}`);
+        
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Transcript saved successfully',
+          transcriptId: transcript.id,
+          environment: 'development'
+        });
+      } catch (writeError: any) {
+        console.error('Error writing transcript file:', writeError);
+        return NextResponse.json(
+          { error: `Failed to save transcript: ${writeError.message || writeError}` },
+          { status: 500 }
+        );
+      }
+    }
   } catch (error: any) {
     console.error('Error saving transcript:', error);
     return NextResponse.json(
@@ -59,9 +84,24 @@ export async function POST(request: Request) {
  */
 export async function GET() {
   try {
+    // Check if we're in a production environment (Vercel)
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    
+    if (isProduction) {
+      // In production (Vercel), we can't read from the filesystem directory
+      console.log('Production environment detected. Returning empty transcripts array.');
+      return NextResponse.json({ 
+        transcripts: [],
+        environment: 'production'
+      });
+    }
+    
     // Check if directory exists
     if (!fs.existsSync(TRANSCRIPTS_DIR)) {
-      return NextResponse.json({ transcripts: [] });
+      return NextResponse.json({ 
+        transcripts: [],
+        environment: 'development'
+      });
     }
     
     // Read all transcript files
@@ -82,7 +122,10 @@ export async function GET() {
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     
-    return NextResponse.json({ transcripts });
+    return NextResponse.json({ 
+      transcripts,
+      environment: 'development'
+    });
   } catch (error: any) {
     console.error('Error retrieving transcripts:', error);
     return NextResponse.json(

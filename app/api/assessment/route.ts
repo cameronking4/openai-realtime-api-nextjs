@@ -3,32 +3,45 @@ import Anthropic from '@anthropic-ai/sdk';
 import { AI_ASSESSMENT_PROMPT } from '@/prompts/ai-conversation-templates';
 import fs from 'fs';
 
-// Helper function to read the Anthropic API key directly from .env file
-function readAnthropicApiKey(): string | null {
-  try {
-    // Try to read from .env.local first
-    if (fs.existsSync('.env.local')) {
-      const envLocalContent = fs.readFileSync('.env.local', 'utf8');
-      const match = envLocalContent.match(/ANTHROPIC_API_KEY=([^\n]+)/);
-      if (match && match[1]) {
-        return match[1].trim();
-      }
-    }
-    
-    // Then try the regular .env file
-    if (fs.existsSync('.env')) {
-      const envContent = fs.readFileSync('.env', 'utf8');
-      const match = envContent.match(/ANTHROPIC_API_KEY=([^\n]+)/);
-      if (match && match[1]) {
-        return match[1].trim();
-      }
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error reading API key from .env files:', error);
-    return null;
+// Helper function to get the Anthropic API key from environment variables
+function getAnthropicApiKey(): string | null {
+  // First try to get from process.env
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  
+  if (apiKey) {
+    console.log('Using Anthropic API key from environment variables');
+    return apiKey;
   }
+  
+  // If we're in development, try to read from files as a fallback
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      // Try to read from .env.local first
+      if (fs.existsSync('.env.local')) {
+        const envLocalContent = fs.readFileSync('.env.local', 'utf8');
+        const match = envLocalContent.match(/ANTHROPIC_API_KEY=([^\n]+)/);
+        if (match && match[1]) {
+          console.log('Using Anthropic API key from .env.local file');
+          return match[1].trim();
+        }
+      }
+      
+      // Then try the regular .env file
+      if (fs.existsSync('.env')) {
+        const envContent = fs.readFileSync('.env', 'utf8');
+        const match = envContent.match(/ANTHROPIC_API_KEY=([^\n]+)/);
+        if (match && match[1]) {
+          console.log('Using Anthropic API key from .env file');
+          return match[1].trim();
+        }
+      }
+    } catch (error) {
+      console.error('Error reading API key from .env files:', error);
+    }
+  }
+  
+  console.error('No Anthropic API key found in environment variables or .env files');
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -44,7 +57,7 @@ export async function POST(request: Request) {
     }
 
     // Get API key directly from file instead of environment
-    const apiKey = readAnthropicApiKey();
+    const apiKey = getAnthropicApiKey();
     
     if (!apiKey) {
       console.error('ANTHROPIC_API_KEY could not be read from .env or .env.local files');
