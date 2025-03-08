@@ -101,11 +101,11 @@ export function SidePanelLogs({ msgs = [] }: { msgs?: MessageType[] }) {
   }, [msgs]);
 
   // Get unique message types
-  const messageTypes = ["all", ...new Set(allMessages.map(msg => msg.type))];
+  const messageTypes = ["all", ...new Set(allMessages.filter(msg => 'type' in msg).map(msg => (msg as any).type))];
 
   // Filter messages based on type and search query
   const filteredMsgs = allMessages.filter(msg => {
-    const matchesType = typeFilter === "all" || msg.type === typeFilter;
+    const matchesType = typeFilter === "all" || ('type' in msg && (msg as any).type === typeFilter);
     const matchesSearch = searchQuery === "" || 
       JSON.stringify(msg).toLowerCase().includes(searchQuery.toLowerCase());
     return matchesType && matchesSearch;
@@ -152,7 +152,7 @@ export function SidePanelLogs({ msgs = [] }: { msgs?: MessageType[] }) {
                       <TableBody>
                         {filteredMsgs.map((msg, i) => (
                           <TableRow key={i}>
-                            <TableCell className="font-medium">{msg.type}</TableCell>
+                            <TableCell className="font-medium">{'type' in msg ? (msg as any).type : msg.role}</TableCell>
                             <TableCell className="font-mono text-sm whitespace-pre-wrap break-words max-w-full">
                               {JSON.stringify(msg, null, 2)}
                             </TableCell>

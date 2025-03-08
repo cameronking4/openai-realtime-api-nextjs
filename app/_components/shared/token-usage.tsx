@@ -23,9 +23,9 @@ export function TokenUsageDisplay({ messages }: TokenUsageDisplayProps) {
             <CardContent>
               <div className="space-y-1 mt-4">
                 {messages
-                  .filter((msg) => msg.type === 'response.done')
+                  .filter((msg) => 'type' in msg && (msg as any).type === 'response.done')
                   .slice(-1)
-                  .map((msg) => {
+                  .map((msg: any) => {
                     const tokenData = [
                       { label: t('tokenUsage.total'), value: msg.response?.usage?.total_tokens },
                       { label: t('tokenUsage.input'), value: msg.response?.usage?.input_tokens }, 

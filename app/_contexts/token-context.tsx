@@ -31,9 +31,9 @@ export function TokenProvider({ children }: { children: ReactNode }) {
   // Update token usage whenever messages change
   useEffect(() => {
     if (messages.length > 0) {
-      const responseDoneMessages = messages.filter(msg => msg.type === 'response.done');
+      const responseDoneMessages = messages.filter(msg => 'type' in msg && (msg as any).type === 'response.done');
       if (responseDoneMessages.length > 0) {
-        const latestMessage = responseDoneMessages[responseDoneMessages.length - 1];
+        const latestMessage = responseDoneMessages[responseDoneMessages.length - 1] as any;
         if (latestMessage.response?.usage) {
           setTokenUsage(latestMessage.response.usage);
         }
