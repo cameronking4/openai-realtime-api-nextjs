@@ -4,7 +4,7 @@ import path from 'path';
 import { PSYCHO_ONCOLOGY_ASSESSMENT_PROMPT } from "../../../prompts/ai-conversation-templates";
 
 // Define the tools that will be available to the AI
-export const tools = [
+const tools = [
   {
     type: "function",
     name: "endSession",
