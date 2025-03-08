@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     try {
       // Main API call
       const response = await anthropic.messages.create({
-        model: 'claude-3-opus-20240229',
+        model: 'claude-3-7-sonnet-20250219',
         max_tokens: 4000,
         messages: [
           {
@@ -128,6 +128,14 @@ export async function POST(request: Request) {
       return NextResponse.json(responseData);
     } catch (apiError: any) {
       console.error('Anthropic API error:', apiError);
+      console.error('Error details:', JSON.stringify({
+        message: apiError.message,
+        status: apiError.status,
+        type: apiError.type,
+        stack: apiError.stack,
+        name: apiError.name,
+        code: apiError.code
+      }, null, 2));
       
       // Handle authentication errors specifically
       if (apiError.status === 401) {
@@ -148,17 +156,32 @@ export async function POST(request: Request) {
         { 
           error: 'Error calling Anthropic API',
           details: apiError.message || 'Unknown API error',
-          status: apiError.status || 500
+          status: apiError.status || 500,
+          type: apiError.type || 'unknown',
+          code: apiError.code || 'unknown',
+          environment: process.env.NODE_ENV || 'unknown',
+          vercel: process.env.VERCEL === '1' ? 'true' : 'false'
         },
         { status: apiError.status || 500 }
       );
     }
   } catch (error: any) {
     console.error('Error generating assessment:', error);
+    console.error('Error details:', JSON.stringify({
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      code: error.code
+    }, null, 2));
+    
     return NextResponse.json(
       { 
         error: 'Failed to generate assessment',
         details: error.message || 'Unknown error',
+        name: error.name || 'Unknown error type',
+        code: error.code || 'unknown',
+        environment: process.env.NODE_ENV || 'unknown',
+        vercel: process.env.VERCEL === '1' ? 'true' : 'false',
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },
       { status: 500 }
