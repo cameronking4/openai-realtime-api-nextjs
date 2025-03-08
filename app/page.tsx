@@ -2,15 +2,15 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { CancerChatInterface } from "@/components/cancer-chat/CancerChatInterface";
-import { PreSessionOptions } from "@/components/cancer-chat/PreSessionOptions";
-import { Conversation } from "@/lib/conversations";
-import useWebRTCAudioSession from "@/hooks/use-webrtc";
-import { useModalityContext } from "@/contexts/modality-context";
-import { useVoiceContext } from "@/contexts/voice-context";
-import { tools } from "@/lib/tools";
-import { generateTranscript, saveTranscript, Transcript } from "@/lib/transcript-service";
-import { Button } from "@/components/ui/button";
+import { CancerChatInterface } from "@/app/_components/features/cancer-chat/CancerChatInterface";
+import { PreSessionOptions } from "@/app/_components/features/cancer-chat/PreSessionOptions";
+import { Conversation } from "@/app/_lib/conversations";
+import useWebRTCAudioSession from "@/app/_hooks/use-webrtc";
+import { useModalityContext } from "@/app/_contexts/modality-context";
+import { useVoiceContext } from "@/app/_contexts/voice-context";
+import { tools } from "@/app/_lib/tools";
+import { generateTranscript, saveTranscript, Transcript } from "@/app/_lib/transcript-service";
+import { Button } from "@/app/_components/ui/button";
 
 export default function CancerChatPage() {
   // Session state

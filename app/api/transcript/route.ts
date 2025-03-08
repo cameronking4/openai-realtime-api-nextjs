@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { Transcript } from '@/lib/transcript-service';
+import { Transcript } from '@/app/_lib/transcript-service';
 
 // Directory to store transcripts
 const TRANSCRIPTS_DIR = path.join(process.cwd(), 'data', 'transcripts');

@@ -1,0 +1,602 @@
+[
+  {
+    "oldPath": "components/ChatBox.tsx",
+    "newPath": "app/_components/shared/ChatBox.tsx",
+    "fileName": "ChatBox.tsx"
+  },
+  {
+    "oldPath": "components/assessment-modal.tsx",
+    "newPath": "app/_components/shared/assessment-modal.tsx",
+    "fileName": "assessment-modal.tsx"
+  },
+  {
+    "oldPath": "components/assessment-visualization.tsx",
+    "newPath": "app/_components/shared/assessment-visualization.tsx",
+    "fileName": "assessment-visualization.tsx"
+  },
+  {
+    "oldPath": "components/audio-processor.tsx",
+    "newPath": "app/_components/shared/audio-processor.tsx",
+    "fileName": "audio-processor.tsx"
+  },
+  {
+    "oldPath": "components/audio-settings.tsx",
+    "newPath": "app/_components/shared/audio-settings.tsx",
+    "fileName": "audio-settings.tsx"
+  },
+  {
+    "oldPath": "components/banner.tsx",
+    "newPath": "app/_components/shared/banner.tsx",
+    "fileName": "banner.tsx"
+  },
+  {
+    "oldPath": "components/broadcast-button.tsx",
+    "newPath": "app/_components/shared/broadcast-button.tsx",
+    "fileName": "broadcast-button.tsx"
+  },
+  {
+    "oldPath": "components/cancer-chat/AssessmentModal.tsx",
+    "newPath": "app/_components/features/cancer-chat/AssessmentModal.tsx",
+    "fileName": "AssessmentModal.tsx"
+  },
+  {
+    "oldPath": "components/cancer-chat/AudioSettings.tsx",
+    "newPath": "app/_components/features/cancer-chat/AudioSettings.tsx",
+    "fileName": "AudioSettings.tsx"
+  },
+  {
+    "oldPath": "components/cancer-chat/AudioVisualizer.tsx",
+    "newPath": "app/_components/features/cancer-chat/AudioVisualizer.tsx",
+    "fileName": "AudioVisualizer.tsx"
+  },
+  {
+    "oldPath": "components/cancer-chat/CancerChatInterface.tsx",
+    "newPath": "app/_components/features/cancer-chat/CancerChatInterface.tsx",
+    "fileName": "CancerChatInterface.tsx"
+  },
+  {
+    "oldPath": "components/cancer-chat/HeaderSection.tsx",
+    "newPath": "app/_components/features/cancer-chat/HeaderSection.tsx",
+    "fileName": "HeaderSection.tsx"
+  },
+  {
+    "oldPath": "components/cancer-chat/InputSection.tsx",
+    "newPath": "app/_components/features/cancer-chat/InputSection.tsx",
+    "fileName": "InputSection.tsx"
+  },
+  {
+    "oldPath": "components/cancer-chat/LoadingScreen.tsx",
+    "newPath": "app/_components/features/cancer-chat/LoadingScreen.tsx",
+    "fileName": "LoadingScreen.tsx"
+  },
+  {
+    "oldPath": "components/cancer-chat/MessageBubble.tsx",
+    "newPath": "app/_components/features/cancer-chat/MessageBubble.tsx",
+    "fileName": "MessageBubble.tsx"
+  },
+  {
+    "oldPath": "components/cancer-chat/PreSessionOptions.tsx",
+    "newPath": "app/_components/features/cancer-chat/PreSessionOptions.tsx",
+    "fileName": "PreSessionOptions.tsx"
+  },
+  {
+    "oldPath": "components/cancer-chat/SessionControls.tsx",
+    "newPath": "app/_components/features/cancer-chat/SessionControls.tsx",
+    "fileName": "SessionControls.tsx"
+  },
+  {
+    "oldPath": "components/cancer-chat/SuggestedResponseButton.tsx",
+    "newPath": "app/_components/features/cancer-chat/SuggestedResponseButton.tsx",
+    "fileName": "SuggestedResponseButton.tsx"
+  },
+  {
+    "oldPath": "components/cancer-chat/SuggestedResponses.tsx",
+    "newPath": "app/_components/features/cancer-chat/SuggestedResponses.tsx",
+    "fileName": "SuggestedResponses.tsx"
+  },
+  {
+    "oldPath": "components/footer.tsx",
+    "newPath": "app/_components/shared/footer.tsx",
+    "fileName": "footer.tsx"
+  },
+  {
+    "oldPath": "components/gate-settings.tsx",
+    "newPath": "app/_components/shared/gate-settings.tsx",
+    "fileName": "gate-settings.tsx"
+  },
+  {
+    "oldPath": "components/header.tsx",
+    "newPath": "app/_components/shared/header.tsx",
+    "fileName": "header.tsx"
+  },
+  {
+    "oldPath": "components/language-switcher.tsx",
+    "newPath": "app/_components/shared/language-switcher.tsx",
+    "fileName": "language-switcher.tsx"
+  },
+  {
+    "oldPath": "components/message-controls.tsx",
+    "newPath": "app/_components/shared/message-controls.tsx",
+    "fileName": "message-controls.tsx"
+  },
+  {
+    "oldPath": "components/message-suggestions.tsx",
+    "newPath": "app/_components/shared/message-suggestions.tsx",
+    "fileName": "message-suggestions.tsx"
+  },
+  {
+    "oldPath": "components/mobile-nav.tsx",
+    "newPath": "app/_components/shared/mobile-nav.tsx",
+    "fileName": "mobile-nav.tsx"
+  },
+  {
+    "oldPath": "components/network-error-alert.tsx",
+    "newPath": "app/_components/shared/network-error-alert.tsx",
+    "fileName": "network-error-alert.tsx"
+  },
+  {
+    "oldPath": "components/realtime-block.tsx",
+    "newPath": "app/_components/shared/realtime-block.tsx",
+    "fileName": "realtime-block.tsx"
+  },
+  {
+    "oldPath": "components/side-panel-logs.tsx",
+    "newPath": "app/_components/shared/side-panel-logs.tsx",
+    "fileName": "side-panel-logs.tsx"
+  },
+  {
+    "oldPath": "components/side-panel-token-usage.tsx",
+    "newPath": "app/_components/shared/side-panel-token-usage.tsx",
+    "fileName": "side-panel-token-usage.tsx"
+  },
+  {
+    "oldPath": "components/side-panel.tsx",
+    "newPath": "app/_components/shared/side-panel.tsx",
+    "fileName": "side-panel.tsx"
+  },
+  {
+    "oldPath": "components/status.tsx",
+    "newPath": "app/_components/shared/status.tsx",
+    "fileName": "status.tsx"
+  },
+  {
+    "oldPath": "components/take-a-moment-button.tsx",
+    "newPath": "app/_components/shared/take-a-moment-button.tsx",
+    "fileName": "take-a-moment-button.tsx"
+  },
+  {
+    "oldPath": "components/text-input.tsx",
+    "newPath": "app/_components/shared/text-input.tsx",
+    "fileName": "text-input.tsx"
+  },
+  {
+    "oldPath": "components/theme-provider.tsx",
+    "newPath": "app/_components/shared/theme-provider.tsx",
+    "fileName": "theme-provider.tsx"
+  },
+  {
+    "oldPath": "components/theme-switcher.tsx",
+    "newPath": "app/_components/shared/theme-switcher.tsx",
+    "fileName": "theme-switcher.tsx"
+  },
+  {
+    "oldPath": "components/token-usage.tsx",
+    "newPath": "app/_components/shared/token-usage.tsx",
+    "fileName": "token-usage.tsx"
+  },
+  {
+    "oldPath": "components/tools-education.tsx",
+    "newPath": "app/_components/shared/tools-education.tsx",
+    "fileName": "tools-education.tsx"
+  },
+  {
+    "oldPath": "components/transcript-modal.tsx",
+    "newPath": "app/_components/shared/transcript-modal.tsx",
+    "fileName": "transcript-modal.tsx"
+  },
+  {
+    "oldPath": "components/translations-context.tsx",
+    "newPath": "app/_components/shared/translations-context.tsx",
+    "fileName": "translations-context.tsx"
+  },
+  {
+    "oldPath": "components/ui/accordion.tsx",
+    "newPath": "app/_components/ui/accordion.tsx",
+    "fileName": "accordion.tsx"
+  },
+  {
+    "oldPath": "components/ui/alert-dialog.tsx",
+    "newPath": "app/_components/ui/alert-dialog.tsx",
+    "fileName": "alert-dialog.tsx"
+  },
+  {
+    "oldPath": "components/ui/alert.tsx",
+    "newPath": "app/_components/ui/alert.tsx",
+    "fileName": "alert.tsx"
+  },
+  {
+    "oldPath": "components/ui/aspect-ratio.tsx",
+    "newPath": "app/_components/ui/aspect-ratio.tsx",
+    "fileName": "aspect-ratio.tsx"
+  },
+  {
+    "oldPath": "components/ui/avatar.tsx",
+    "newPath": "app/_components/ui/avatar.tsx",
+    "fileName": "avatar.tsx"
+  },
+  {
+    "oldPath": "components/ui/badge.tsx",
+    "newPath": "app/_components/ui/badge.tsx",
+    "fileName": "badge.tsx"
+  },
+  {
+    "oldPath": "components/ui/breadcrumb.tsx",
+    "newPath": "app/_components/ui/breadcrumb.tsx",
+    "fileName": "breadcrumb.tsx"
+  },
+  {
+    "oldPath": "components/ui/button.tsx",
+    "newPath": "app/_components/ui/button.tsx",
+    "fileName": "button.tsx"
+  },
+  {
+    "oldPath": "components/ui/calendar.tsx",
+    "newPath": "app/_components/ui/calendar.tsx",
+    "fileName": "calendar.tsx"
+  },
+  {
+    "oldPath": "components/ui/card.tsx",
+    "newPath": "app/_components/ui/card.tsx",
+    "fileName": "card.tsx"
+  },
+  {
+    "oldPath": "components/ui/carousel.tsx",
+    "newPath": "app/_components/ui/carousel.tsx",
+    "fileName": "carousel.tsx"
+  },
+  {
+    "oldPath": "components/ui/chart.tsx",
+    "newPath": "app/_components/ui/chart.tsx",
+    "fileName": "chart.tsx"
+  },
+  {
+    "oldPath": "components/ui/checkbox.tsx",
+    "newPath": "app/_components/ui/checkbox.tsx",
+    "fileName": "checkbox.tsx"
+  },
+  {
+    "oldPath": "components/ui/collapsible.tsx",
+    "newPath": "app/_components/ui/collapsible.tsx",
+    "fileName": "collapsible.tsx"
+  },
+  {
+    "oldPath": "components/ui/command.tsx",
+    "newPath": "app/_components/ui/command.tsx",
+    "fileName": "command.tsx"
+  },
+  {
+    "oldPath": "components/ui/confetti.tsx",
+    "newPath": "app/_components/ui/confetti.tsx",
+    "fileName": "confetti.tsx"
+  },
+  {
+    "oldPath": "components/ui/context-menu.tsx",
+    "newPath": "app/_components/ui/context-menu.tsx",
+    "fileName": "context-menu.tsx"
+  },
+  {
+    "oldPath": "components/ui/dialog.tsx",
+    "newPath": "app/_components/ui/dialog.tsx",
+    "fileName": "dialog.tsx"
+  },
+  {
+    "oldPath": "components/ui/drawer.tsx",
+    "newPath": "app/_components/ui/drawer.tsx",
+    "fileName": "drawer.tsx"
+  },
+  {
+    "oldPath": "components/ui/dropdown-menu.tsx",
+    "newPath": "app/_components/ui/dropdown-menu.tsx",
+    "fileName": "dropdown-menu.tsx"
+  },
+  {
+    "oldPath": "components/ui/form.tsx",
+    "newPath": "app/_components/ui/form.tsx",
+    "fileName": "form.tsx"
+  },
+  {
+    "oldPath": "components/ui/hover-card.tsx",
+    "newPath": "app/_components/ui/hover-card.tsx",
+    "fileName": "hover-card.tsx"
+  },
+  {
+    "oldPath": "components/ui/input-otp.tsx",
+    "newPath": "app/_components/ui/input-otp.tsx",
+    "fileName": "input-otp.tsx"
+  },
+  {
+    "oldPath": "components/ui/input.tsx",
+    "newPath": "app/_components/ui/input.tsx",
+    "fileName": "input.tsx"
+  },
+  {
+    "oldPath": "components/ui/label.tsx",
+    "newPath": "app/_components/ui/label.tsx",
+    "fileName": "label.tsx"
+  },
+  {
+    "oldPath": "components/ui/menubar.tsx",
+    "newPath": "app/_components/ui/menubar.tsx",
+    "fileName": "menubar.tsx"
+  },
+  {
+    "oldPath": "components/ui/navigation-menu.tsx",
+    "newPath": "app/_components/ui/navigation-menu.tsx",
+    "fileName": "navigation-menu.tsx"
+  },
+  {
+    "oldPath": "components/ui/pagination.tsx",
+    "newPath": "app/_components/ui/pagination.tsx",
+    "fileName": "pagination.tsx"
+  },
+  {
+    "oldPath": "components/ui/popover.tsx",
+    "newPath": "app/_components/ui/popover.tsx",
+    "fileName": "popover.tsx"
+  },
+  {
+    "oldPath": "components/ui/progress.tsx",
+    "newPath": "app/_components/ui/progress.tsx",
+    "fileName": "progress.tsx"
+  },
+  {
+    "oldPath": "components/ui/radio-group.tsx",
+    "newPath": "app/_components/ui/radio-group.tsx",
+    "fileName": "radio-group.tsx"
+  },
+  {
+    "oldPath": "components/ui/resizable.tsx",
+    "newPath": "app/_components/ui/resizable.tsx",
+    "fileName": "resizable.tsx"
+  },
+  {
+    "oldPath": "components/ui/scroll-area.tsx",
+    "newPath": "app/_components/ui/scroll-area.tsx",
+    "fileName": "scroll-area.tsx"
+  },
+  {
+    "oldPath": "components/ui/select.tsx",
+    "newPath": "app/_components/ui/select.tsx",
+    "fileName": "select.tsx"
+  },
+  {
+    "oldPath": "components/ui/separator.tsx",
+    "newPath": "app/_components/ui/separator.tsx",
+    "fileName": "separator.tsx"
+  },
+  {
+    "oldPath": "components/ui/sheet.tsx",
+    "newPath": "app/_components/ui/sheet.tsx",
+    "fileName": "sheet.tsx"
+  },
+  {
+    "oldPath": "components/ui/sidebar.tsx",
+    "newPath": "app/_components/ui/sidebar.tsx",
+    "fileName": "sidebar.tsx"
+  },
+  {
+    "oldPath": "components/ui/skeleton.tsx",
+    "newPath": "app/_components/ui/skeleton.tsx",
+    "fileName": "skeleton.tsx"
+  },
+  {
+    "oldPath": "components/ui/slider.tsx",
+    "newPath": "app/_components/ui/slider.tsx",
+    "fileName": "slider.tsx"
+  },
+  {
+    "oldPath": "components/ui/sonner.tsx",
+    "newPath": "app/_components/ui/sonner.tsx",
+    "fileName": "sonner.tsx"
+  },
+  {
+    "oldPath": "components/ui/switch.tsx",
+    "newPath": "app/_components/ui/switch.tsx",
+    "fileName": "switch.tsx"
+  },
+  {
+    "oldPath": "components/ui/table.tsx",
+    "newPath": "app/_components/ui/table.tsx",
+    "fileName": "table.tsx"
+  },
+  {
+    "oldPath": "components/ui/tabs.tsx",
+    "newPath": "app/_components/ui/tabs.tsx",
+    "fileName": "tabs.tsx"
+  },
+  {
+    "oldPath": "components/ui/textarea.tsx",
+    "newPath": "app/_components/ui/textarea.tsx",
+    "fileName": "textarea.tsx"
+  },
+  {
+    "oldPath": "components/ui/three-dots-wave.tsx",
+    "newPath": "app/_components/ui/three-dots-wave.tsx",
+    "fileName": "three-dots-wave.tsx"
+  },
+  {
+    "oldPath": "components/ui/toast.tsx",
+    "newPath": "app/_components/ui/toast.tsx",
+    "fileName": "toast.tsx"
+  },
+  {
+    "oldPath": "components/ui/toaster.tsx",
+    "newPath": "app/_components/ui/toaster.tsx",
+    "fileName": "toaster.tsx"
+  },
+  {
+    "oldPath": "components/ui/toggle-group.tsx",
+    "newPath": "app/_components/ui/toggle-group.tsx",
+    "fileName": "toggle-group.tsx"
+  },
+  {
+    "oldPath": "components/ui/toggle.tsx",
+    "newPath": "app/_components/ui/toggle.tsx",
+    "fileName": "toggle.tsx"
+  },
+  {
+    "oldPath": "components/ui/tooltip.tsx",
+    "newPath": "app/_components/ui/tooltip.tsx",
+    "fileName": "tooltip.tsx"
+  },
+  {
+    "oldPath": "components/ui/transcriber.tsx",
+    "newPath": "app/_components/ui/transcriber.tsx",
+    "fileName": "transcriber.tsx"
+  },
+  {
+    "oldPath": "components/voice-select.tsx",
+    "newPath": "app/_components/shared/voice-select.tsx",
+    "fileName": "voice-select.tsx"
+  },
+  {
+    "oldPath": "components/welcome.tsx",
+    "newPath": "app/_components/shared/welcome.tsx",
+    "fileName": "welcome.tsx"
+  },
+  {
+    "oldPath": "src/components/features/cancer-chat/index.ts",
+    "newPath": "app/_components/features/cancer-chat/index.ts",
+    "fileName": "index.ts"
+  },
+  {
+    "oldPath": "src/components/layout/index.ts",
+    "newPath": "app/_components/layout/index.ts",
+    "fileName": "index.ts"
+  },
+  {
+    "oldPath": "src/components/shared/index.ts",
+    "newPath": "app/_components/shared/index.ts",
+    "fileName": "index.ts"
+  },
+  {
+    "oldPath": "src/components/ui/index.ts",
+    "newPath": "app/_components/ui/index.ts",
+    "fileName": "index.ts"
+  },
+  {
+    "oldPath": "hooks/use-mobile.tsx",
+    "newPath": "app/_hooks/use-mobile.tsx",
+    "fileName": "use-mobile.tsx"
+  },
+  {
+    "oldPath": "hooks/use-toast.ts",
+    "newPath": "app/_hooks/use-toast.ts",
+    "fileName": "use-toast.ts"
+  },
+  {
+    "oldPath": "hooks/use-tools.ts",
+    "newPath": "app/_hooks/use-tools.ts",
+    "fileName": "use-tools.ts"
+  },
+  {
+    "oldPath": "hooks/use-webrtc.ts",
+    "newPath": "app/_hooks/use-webrtc.ts",
+    "fileName": "use-webrtc.ts"
+  },
+  {
+    "oldPath": "src/hooks/index.ts",
+    "newPath": "app/_hooks/index.ts",
+    "fileName": "index.ts"
+  },
+  {
+    "oldPath": "lib/anthropic.ts",
+    "newPath": "app/_lib/anthropic.ts",
+    "fileName": "anthropic.ts"
+  },
+  {
+    "oldPath": "lib/conversations.ts",
+    "newPath": "app/_lib/conversations.ts",
+    "fileName": "conversations.ts"
+  },
+  {
+    "oldPath": "lib/tools.ts",
+    "newPath": "app/_lib/tools.ts",
+    "fileName": "tools.ts"
+  },
+  {
+    "oldPath": "lib/transcript-service.ts",
+    "newPath": "app/_lib/transcript-service.ts",
+    "fileName": "transcript-service.ts"
+  },
+  {
+    "oldPath": "lib/translations/en.ts",
+    "newPath": "app/_lib/translations/en.ts",
+    "fileName": "en.ts"
+  },
+  {
+    "oldPath": "lib/translations/es.ts",
+    "newPath": "app/_lib/translations/es.ts",
+    "fileName": "es.ts"
+  },
+  {
+    "oldPath": "lib/translations/fr.ts",
+    "newPath": "app/_lib/translations/fr.ts",
+    "fileName": "fr.ts"
+  },
+  {
+    "oldPath": "lib/translations/zh.ts",
+    "newPath": "app/_lib/translations/zh.ts",
+    "fileName": "zh.ts"
+  },
+  {
+    "oldPath": "lib/utils.ts",
+    "newPath": "app/_lib/utils.ts",
+    "fileName": "utils.ts"
+  },
+  {
+    "oldPath": "types/index.ts",
+    "newPath": "app/_types/index.ts",
+    "fileName": "index.ts"
+  },
+  {
+    "oldPath": "src/types/api.ts",
+    "newPath": "app/_types/api.ts",
+    "fileName": "api.ts"
+  },
+  {
+    "oldPath": "src/types/index.ts",
+    "newPath": "app/_types/index.ts",
+    "fileName": "index.ts"
+  },
+  {
+    "oldPath": "src/types/ui.ts",
+    "newPath": "app/_types/ui.ts",
+    "fileName": "ui.ts"
+  },
+  {
+    "oldPath": "src/utils/index.ts",
+    "newPath": "app/_utils/index.ts",
+    "fileName": "index.ts"
+  },
+  {
+    "oldPath": "contexts/modality-context.tsx",
+    "newPath": "app/_contexts/modality-context.tsx",
+    "fileName": "modality-context.tsx"
+  },
+  {
+    "oldPath": "contexts/token-context.tsx",
+    "newPath": "app/_contexts/token-context.tsx",
+    "fileName": "token-context.tsx"
+  },
+  {
+    "oldPath": "contexts/voice-context.tsx",
+    "newPath": "app/_contexts/voice-context.tsx",
+    "fileName": "voice-context.tsx"
+  },
+  {
+    "oldPath": "src/providers/app-providers.tsx",
+    "newPath": "app/_components/providers/app-providers.tsx",
+    "fileName": "app-providers.tsx"
+  }
+]

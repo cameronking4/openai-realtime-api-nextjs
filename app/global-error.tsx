@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Poppins } from "next/font/google";
-import { cn } from "@/lib/utils";
+import { cn } from "@/app/_lib/utils";
 import "./globals.css";
 
 const poppins = Poppins({

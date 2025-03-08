@@ -1,0 +1,12 @@
+{
+  "id": "transcript_1741391572830",
+  "sessionId": "session_1741391572830",
+  "createdAt": "2025-03-07T23:52:52.830Z",
+  "content": "[5:52 PM] Eve: Hello, I'm Eve, your AI assistant for psycho-oncology assessments. I'm here to support your mental well-being during your cancer journey. Regularly checking in on your emotional health is an important part of the healing process. Shall we begin? How have you been feeling about your treatment lately?\n\n[5:52 PM] Patient: Honestly, I'm really struggling right now.\n\n[5:52 PM] Eve: I'm sorry to hear that you're having a tough time. It's completely normal to feel overwhelmed. Can you share more about what's been causing the most struggle for you?\n\n",
+  "metadata": {
+    "messageCount": 3,
+    "userMessageCount": 1,
+    "assistantMessageCount": 2,
+    "duration": 4
+  }
+}
