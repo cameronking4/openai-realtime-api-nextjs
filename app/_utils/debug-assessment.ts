@@ -7,13 +7,13 @@
  */
 export async function testAssessmentAPI(): Promise<any> {
   try {
-    // Call the debug endpoint
-    const response = await fetch('/api/assessment/debug');
+    // Call the test endpoint instead of debug
+    const response = await fetch('/api/assessment/test');
     
     // Check if the request was successful
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Assessment API debug test failed:', response.status, errorText);
+      console.error('Assessment API test failed:', response.status, errorText);
       
       try {
         // Try to parse the error as JSON
@@ -35,7 +35,7 @@ export async function testAssessmentAPI(): Promise<any> {
     
     // Parse the response as JSON
     const data = await response.json();
-    console.log('Assessment API debug test result:', data);
+    console.log('Assessment API test result:', data);
     
     return {
       success: true,
