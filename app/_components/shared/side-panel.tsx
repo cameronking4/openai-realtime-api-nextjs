@@ -17,7 +17,7 @@ import { VoiceSelector } from "@/app/_components/shared/voice-select";
 import { ToolsEducation } from "@/app/_components/shared/tools-education";
 import { SidePanelTokenUsage } from "./side-panel-token-usage";
 import { SidePanelLogs } from "./side-panel-logs";
-import { Message as MessageType } from "@/types";
+import { Message as MessageType } from "@/app/_types";
 import AudioSettings from "./audio-settings";
 
 export interface SidePanelProps {

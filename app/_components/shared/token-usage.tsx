@@ -2,7 +2,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Card, CardContent, CardTitle } from "@/app/_components/ui/card"
 import { Table, TableBody, TableCell, TableRow } from "@/app/_components/ui/table"
 import { useTranslations } from "@/app/_components/shared/translations-context"
-import { Message } from "@/types"
+import { Message } from "@/app/_types"
 
 interface TokenUsageDisplayProps {
   messages: Message[]

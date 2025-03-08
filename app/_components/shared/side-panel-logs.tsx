@@ -22,7 +22,7 @@ import { Button } from "@/app/_components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/_components/ui/select";
 import { Terminal, MessageSquare } from "lucide-react";
 import { useTranslations } from "@/app/_components/shared/translations-context";
-import { Message as MessageType } from "@/types";
+import { Message as MessageType } from "@/app/_types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/app/_components/ui/accordion";
 
 function FilterControls({

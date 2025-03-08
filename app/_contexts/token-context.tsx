@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { Message } from "@/types";
+import { Message } from "@/app/_types";
 
 interface TokenUsageData {
   total_tokens: number;

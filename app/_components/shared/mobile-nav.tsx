@@ -12,7 +12,7 @@ import { Button } from "@/app/_components/ui/button";
 import { MenuIcon } from "lucide-react";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
-import { Badge } from "./ui/badge";
+import { Badge } from "@/app/_components/ui/badge";
 import { useTranslations } from "@/app/_components/shared/translations-context"
 
 export function MobileNav() {
