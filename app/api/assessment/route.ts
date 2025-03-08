@@ -82,10 +82,11 @@ export async function POST(request: Request) {
     console.log('Sending assessment request to Anthropic API...');
     
     try {
-      // Main API call
+      // Main API call - using the same model as the working suggestions API
       const response = await anthropic.messages.create({
-        model: 'claude-3-7-sonnet-20250219',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 4000,
+        temperature: 0.7,
         messages: [
           {
             role: 'user',
