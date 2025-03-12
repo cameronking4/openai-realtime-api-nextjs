@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/app/_lib/utils";
 import ThreeDotsWave from "@/app/_components/ui/three-dots-wave";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/_components/ui/avatar";
+import ReactMarkdown from 'react-markdown';
 
 interface MessageBubbleProps {
   isUser: boolean;
@@ -13,6 +14,13 @@ interface MessageBubbleProps {
   isProcessing?: boolean;
   isSpeaking?: boolean;
 }
+
+// Define the type for the component props in ReactMarkdown
+type MarkdownComponentProps = {
+  node?: any;
+  children?: React.ReactNode;
+  [key: string]: any;
+};
 
 export function MessageBubble({
   isUser,
@@ -62,8 +70,29 @@ export function MessageBubble({
           // Show wave animation for processing or speaking status
           <ThreeDotsWave />
         ) : (
-          // Otherwise, show the message text
-          <p className="leading-relaxed text-base">{text}</p>
+          // Use ReactMarkdown to render markdown formatting
+          <div className="leading-relaxed text-base markdown-content whitespace-pre-wrap">
+            <ReactMarkdown
+              components={{
+                p: ({ children, ...props }: MarkdownComponentProps) => <p className="mb-2 last:mb-0" {...props}>{children}</p>,
+                strong: ({ children, ...props }: MarkdownComponentProps) => <span className="font-bold" {...props}>{children}</span>,
+                em: ({ children, ...props }: MarkdownComponentProps) => <span className="italic" {...props}>{children}</span>,
+                ul: ({ children, ...props }: MarkdownComponentProps) => <ul className="list-disc pl-5 mb-2" {...props}>{children}</ul>,
+                ol: ({ children, ...props }: MarkdownComponentProps) => <ol className="list-decimal pl-5 mb-2" {...props}>{children}</ol>,
+                li: ({ children, ...props }: MarkdownComponentProps) => <li className="mb-1" {...props}>{children}</li>,
+                h1: ({ children, ...props }: MarkdownComponentProps) => <h1 className="text-xl font-bold mb-2" {...props}>{children}</h1>,
+                h2: ({ children, ...props }: MarkdownComponentProps) => <h2 className="text-lg font-bold mb-2" {...props}>{children}</h2>,
+                h3: ({ children, ...props }: MarkdownComponentProps) => <h3 className="text-base font-bold mb-2" {...props}>{children}</h3>,
+                a: ({ children, ...props }: MarkdownComponentProps) => <a className="text-blue-600 underline" {...props} target="_blank" rel="noopener noreferrer">{children}</a>,
+                blockquote: ({ children, ...props }: MarkdownComponentProps) => <blockquote className="border-l-4 border-gray-300 pl-4 italic my-2" {...props}>{children}</blockquote>,
+                code: ({ children, ...props }: MarkdownComponentProps) => <code className="bg-gray-100 px-1 py-0.5 rounded text-sm" {...props}>{children}</code>,
+                pre: ({ children, ...props }: MarkdownComponentProps) => <pre className="bg-gray-100 p-2 rounded my-2 overflow-x-auto text-sm" {...props}>{children}</pre>,
+                br: ({ ...props }: MarkdownComponentProps) => <br className="mb-2" {...props} />,
+              }}
+            >
+              {text}
+            </ReactMarkdown>
+          </div>
         )}
 
         {/* Timestamp below */}

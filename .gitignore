@@ -130,3 +130,21 @@ dist
 .pnp.*
 .vercel
 .env*.local
+
+# Test scripts and utilities
+test-*.js
+test-*.mjs
+check-*.js
+create-*.js
+create-*.ts
+activate-*.ts
+fix-*.js
+
+# Test data
+data/transcripts/
+
+# Test API endpoints
+app/api/test-assessment/
+app/api/public-test-assessment/
+app/test-assessment/
+app/public-test-assessment/

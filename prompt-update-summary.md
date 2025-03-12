@@ -50,22 +50,6 @@ The AI assessment prompt has been updated with:
 
 5. **N/A Handling**: Proper handling of domains with insufficient data using "N/A" values.
 
-### ANSWER_SUGGESTION_PROMPT
-
-A new prompt type has been added to guide AI in providing comprehensive answers to user questions:
-
-1. **Structured Answer Format**: Guidelines for structuring answers with direct responses, context, supporting details, and conclusions.
-
-2. **Quality Guidelines**: Instructions for ensuring accuracy, completeness, relevance, clarity, and balance in responses.
-
-3. **Tone and Style Guidance**: Direction on maintaining appropriate tone, adapting formality, and using clear language.
-
-4. **Domain-Specific Instructions**: Special guidelines for handling technical questions, subjective topics, and sensitive areas like health, legal, or financial advice.
-
-5. **Formatting Recommendations**: Guidance on using headings, bullet points, and other formatting to improve readability.
-
-6. **Knowledge Limitations**: Instructions for transparently acknowledging limitations and avoiding speculation.
-
 ## Code Updates
 
 ### AssessmentVisualization Component
@@ -84,13 +68,12 @@ The `AssessmentVisualization` component has been updated to:
 
 ### Database Updates
 
-New versions of prompts have been created in the database:
+New versions of both prompts have been created in the database:
 
 1. **PSYCHO_ONCOLOGY_ASSESSMENT**: Version "Structured Domains v1"
 2. **AI_ASSESSMENT**: Version "Structured Domains v1"
-3. **ANSWER_SUGGESTION**: Version "Comprehensive Answer Guide v1"
 
-All versions have been activated and are now being used by the application.
+Both versions have been activated and are now being used by the application.
 
 ## Testing
 
@@ -104,6 +87,4 @@ A test data structure was created to verify the new JSON format and component up
 
 1. **Monitor Assessment Quality**: Track the quality and completeness of assessments with the new prompts.
 2. **Gather User Feedback**: Collect feedback from clinicians on the new assessment format.
-3. **Consider Additional Metrics**: Evaluate if additional metrics or domains should be added in future versions.
-4. **Evaluate Answer Quality**: Monitor the effectiveness of the ANSWER_SUGGESTION prompt in improving response quality.
-5. **Expand Prompt Library**: Consider adding additional specialized prompts for different interaction types. 
+3. **Consider Additional Metrics**: Evaluate if additional metrics or domains should be added in future versions. 

@@ -1,216 +1,519 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import React from 'react';
+import { Button } from '@/app/_components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/_components/ui/tabs';
+import { Textarea } from '@/app/_components/ui/textarea';
+import { Input } from '@/app/_components/ui/input';
+import { Label } from '@/app/_components/ui/label';
+import { useToast } from '@/app/_hooks/use-toast';
 
+// Define types based on the Prisma schema
 interface PromptType {
   id: number;
   name: string;
-  description: string;
-  versions: PromptVersion[];
+  description?: string;
 }
 
 interface PromptVersion {
   id: number;
   promptTypeId: number;
   versionName: string;
-  description: string;
+  description?: string;
   content: string;
-  author: string;
+  author?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-export default function PromptsAdminPage() {
-  const [promptTypes, setPromptTypes] = useState<PromptType[]>([]);
-  const [selectedType, setSelectedType] = useState<PromptType | null>(null);
-  const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export default function AdminPromptsPage() {
+  const [promptTypes, setPromptTypes] = React.useState<PromptType[]>([]);
+  const [promptVersions, setPromptVersions] = React.useState<PromptVersion[]>([]);
+  const [selectedType, setSelectedType] = React.useState<string>('');
+  const [newVersionName, setNewVersionName] = React.useState('');
+  const [newVersionDescription, setNewVersionDescription] = React.useState('');
+  const [newVersionAuthor, setNewVersionAuthor] = React.useState('');
+  const [newVersionContent, setNewVersionContent] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [isCreating, setIsCreating] = React.useState(false);
+  const { toast } = useToast();
   
-  // Load prompt types on page load
-  useEffect(() => {
-    async function loadPromptTypes() {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const response = await fetch('/api/prompts/types');
-        
-        if (!response.ok) {
-          throw new Error(`Failed to load prompt types: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        setPromptTypes(data);
-        
-        // Select the first prompt type by default
-        if (data.length > 0 && !selectedType) {
-          setSelectedType(data[0]);
-        }
-      } catch (error) {
-        console.error('Error loading prompt types:', error);
-        setError('Failed to load prompt types. Please try again.');
-      } finally {
-        setIsLoading(false);
+  // New state for edit mode
+  const [editMode, setEditMode] = React.useState(false);
+  const [editingVersion, setEditingVersion] = React.useState<PromptVersion | null>(null);
+  const [editContent, setEditContent] = React.useState('');
+  
+  // New state for test mode
+  const [testMode, setTestMode] = React.useState(false);
+  const [testingVersion, setTestingVersion] = React.useState<PromptVersion | null>(null);
+  const [testInput, setTestInput] = React.useState('');
+  const [testResult, setTestResult] = React.useState('');
+  const [isTestLoading, setIsTestLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    fetchPromptTypes();
+  }, []);
+
+  React.useEffect(() => {
+    if (selectedType) {
+      // Find the selected type in the prompt types
+      const selectedTypeData = promptTypes.find(type => type.id.toString() === selectedType);
+      if (selectedTypeData) {
+        fetchPromptVersions(selectedType);
       }
     }
-    
-    loadPromptTypes();
-  }, []);
-  
-  // Function to activate a prompt version
-  async function activateVersion(versionId: number) {
+  }, [selectedType]);
+
+  const fetchPromptTypes = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/prompts/types');
+      const data = await response.json();
+      console.log('Fetched prompt types:', data);
+      
+      // Extract prompt types without versions for the dropdown
+      const typesWithoutVersions = data.map((type: any) => ({
+        id: type.id,
+        name: type.name,
+        description: type.description
+      }));
+      
+      setPromptTypes(typesWithoutVersions);
+      
+      if (data.length > 0) {
+        setSelectedType(data[0].id.toString());
+        console.log('Set selected type to:', data[0].id.toString());
+        
+        // If the type has versions, set them directly
+        if (data[0].versions && Array.isArray(data[0].versions)) {
+          setPromptVersions(data[0].versions);
+          console.log('Set prompt versions directly from type data:', data[0].versions.length);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch prompt types:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch prompt types',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchPromptVersions = async (typeId: string) => {
+    setIsLoading(true);
+    try {
+      console.log('Fetching prompt versions for type ID:', typeId);
+      const response = await fetch(`/api/prompts/versions?promptTypeId=${typeId}`);
+      const data = await response.json();
+      console.log('Fetched prompt versions:', data);
+      
+      // Ensure data is an array before setting state
+      if (Array.isArray(data)) {
+        setPromptVersions(data);
+        console.log('Set prompt versions to array of length:', data.length);
+      } else {
+        console.error('Expected array but received:', data);
+        setPromptVersions([]); // Set empty array as fallback
+        toast({
+          title: 'Error',
+          description: 'Received invalid data format for prompt versions',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch prompt versions:', error);
+      setPromptVersions([]); // Set empty array on error
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch prompt versions',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateVersion = async () => {
+    if (!newVersionName || !newVersionContent) {
+      toast({
+        title: 'Error',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const response = await fetch('/api/prompts/versions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          promptTypeId: parseInt(selectedType),
+          versionName: newVersionName,
+          description: newVersionDescription,
+          author: newVersionAuthor,
+          content: newVersionContent,
+          isActive: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create prompt version');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Prompt version created successfully',
+      });
+
+      // Reset form
+      setNewVersionName('');
+      setNewVersionDescription('');
+      setNewVersionAuthor('');
+      setNewVersionContent('');
+      setIsCreating(false);
+
+      // Refresh versions
+      fetchPromptVersions(selectedType);
+    } catch (error) {
+      console.error('Failed to create prompt version:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create prompt version',
+        variant: 'destructive',
+      });
+      setIsCreating(false);
+    }
+  };
+
+  const handleActivateVersion = async (versionId: number) => {
     try {
       const response = await fetch(`/api/prompts/versions/${versionId}/activate`, {
-        method: 'POST'
+        method: 'POST',
       });
-      
+
       if (!response.ok) {
-        throw new Error(`Failed to activate version: ${response.status} ${response.statusText}`);
+        throw new Error('Failed to activate prompt version');
       }
-      
-      // Refresh the prompt types
-      const updatedTypes = await fetch('/api/prompts/types').then(res => res.json());
-      setPromptTypes(updatedTypes);
-      
-      // Update the selected type
-      if (selectedType) {
-        const updatedType = updatedTypes.find((type: PromptType) => type.id === selectedType.id);
-        if (updatedType) {
-          setSelectedType(updatedType);
-        }
-      }
-      
-      alert('Prompt version activated successfully!');
+
+      toast({
+        title: 'Success',
+        description: 'Prompt version activated successfully',
+      });
+
+      // Refresh versions
+      fetchPromptVersions(selectedType);
     } catch (error) {
-      console.error('Error activating version:', error);
-      alert('Failed to activate prompt version. Please try again.');
+      console.error('Failed to activate prompt version:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to activate prompt version',
+        variant: 'destructive',
+      });
     }
-  }
+  };
   
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Prompt Management</h1>
+  // New function to handle edit button click
+  const handleEditClick = (version: PromptVersion) => {
+    setEditMode(true);
+    setEditingVersion(version);
+    setEditContent(version.content);
+  };
+  
+  // New function to save edited content
+  const handleSaveEdit = async () => {
+    if (!editingVersion) return;
+    
+    try {
+      const response = await fetch(`/api/prompts/versions/${editingVersion.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: editContent,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update prompt version');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Prompt version updated successfully',
+      });
+
+      // Exit edit mode
+      setEditMode(false);
+      setEditingVersion(null);
+      setEditContent('');
+
+      // Refresh versions
+      fetchPromptVersions(selectedType);
+    } catch (error) {
+      console.error('Failed to update prompt version:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update prompt version',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  // New function to handle test button click
+  const handleTestClick = (version: PromptVersion) => {
+    setTestMode(true);
+    setTestingVersion(version);
+    setTestInput('');
+    setTestResult('');
+  };
+  
+  // New function to run test
+  const handleRunTest = async () => {
+    if (!testingVersion || !testInput) return;
+    
+    setIsTestLoading(true);
+    try {
+      // This is a simplified test - in a real implementation, you would
+      // call an API endpoint that uses the prompt with the test input
+      // For now, we'll just simulate a response
       
-      {isLoading ? (
-        <div className="text-center py-8">Loading prompt data...</div>
-      ) : error ? (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          {/* Prompt Types List */}
-          <div className="md:col-span-3 bg-white p-4 rounded shadow">
-            <h2 className="text-xl font-semibold mb-4">Prompt Types</h2>
-            <ul className="space-y-2">
-              {promptTypes.map((type) => (
-                <li 
-                  key={type.id}
-                  className={`p-2 rounded cursor-pointer ${selectedType?.id === type.id ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-                  onClick={() => setSelectedType(type)}
-                >
-                  <div className="font-medium">{type.name}</div>
-                  <div className="text-sm text-gray-600">{type.description}</div>
-                </li>
-              ))}
-            </ul>
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setTestResult(`Test result for "${testingVersion.versionName}" with input: "${testInput}"\n\nThis is a simulated response. In a real implementation, this would be the result of processing the input with the selected prompt.`);
+    } catch (error) {
+      console.error('Failed to run test:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to run test',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsTestLoading(false);
+    }
+  };
+
+  return (
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-6">Prompt Management</h1>
+      
+      {/* Edit Mode */}
+      {editMode && editingVersion && (
+        <div className="mb-8 p-4 border rounded-lg">
+          <h2 className="text-xl font-semibold mb-4">Edit Prompt: {editingVersion.versionName}</h2>
+          <div className="mb-4">
+            <Label htmlFor="edit-content">Content</Label>
+            <Textarea
+              id="edit-content"
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="h-64 font-mono"
+            />
           </div>
-          
-          {/* Prompt Versions List */}
-          {selectedType && (
-            <div className="md:col-span-3 bg-white p-4 rounded shadow">
-              <h2 className="text-xl font-semibold mb-4">Versions</h2>
-              <ul className="space-y-2">
-                {selectedType.versions.map((version) => (
-                  <li 
-                    key={version.id}
-                    className={`p-2 rounded cursor-pointer ${selectedVersion?.id === version.id ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
-                    onClick={() => setSelectedVersion(version)}
-                  >
-                    <div className="font-medium flex items-center justify-between">
-                      {version.versionName}
-                      {version.isActive && (
-                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Active</span>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-600">{version.description}</div>
-                    <div className="text-xs text-gray-500">
-                      Created: {new Date(version.createdAt).toLocaleDateString()}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              
-              <div className="mt-4">
-                <Link 
-                  href={`/admin/prompts/create?typeId=${selectedType.id}`}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm"
-                >
-                  Create New Version
-                </Link>
+          <div className="flex gap-2">
+            <Button onClick={handleSaveEdit}>Save Changes</Button>
+            <Button variant="outline" onClick={() => {
+              setEditMode(false);
+              setEditingVersion(null);
+              setEditContent('');
+            }}>Cancel</Button>
+          </div>
+        </div>
+      )}
+      
+      {/* Test Mode */}
+      {testMode && testingVersion && (
+        <div className="mb-8 p-4 border rounded-lg">
+          <h2 className="text-xl font-semibold mb-4">Test Prompt: {testingVersion.versionName}</h2>
+          <div className="mb-4">
+            <Label htmlFor="test-input">Test Input</Label>
+            <Textarea
+              id="test-input"
+              value={testInput}
+              onChange={(e) => setTestInput(e.target.value)}
+              className="h-32"
+              placeholder="Enter test input here..."
+            />
+          </div>
+          <div className="mb-4">
+            <Button onClick={handleRunTest} disabled={isTestLoading}>
+              {isTestLoading ? 'Running...' : 'Run Test'}
+            </Button>
+            <Button variant="outline" className="ml-2" onClick={() => {
+              setTestMode(false);
+              setTestingVersion(null);
+              setTestInput('');
+              setTestResult('');
+            }}>Cancel</Button>
+          </div>
+          {testResult && (
+            <div className="mt-4">
+              <Label htmlFor="test-result">Result</Label>
+              <div className="p-4 border rounded-lg bg-gray-50 whitespace-pre-wrap">
+                {testResult}
               </div>
             </div>
           )}
-          
-          {/* Prompt Version Details */}
-          {selectedVersion && (
-            <div className="md:col-span-6 bg-white p-4 rounded shadow">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Version Details</h2>
-                
-                {!selectedVersion.isActive && (
-                  <button
-                    onClick={() => activateVersion(selectedVersion.id)}
-                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded text-sm"
-                  >
-                    Activate This Version
-                  </button>
+        </div>
+      )}
+      
+      {!editMode && !testMode && (
+        <>
+          <div className="mb-6">
+            <Label htmlFor="prompt-type">Prompt Type</Label>
+            <select
+              id="prompt-type"
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="w-full p-2 border rounded"
+              disabled={isLoading}
+            >
+              {promptTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Tabs defaultValue="versions">
+            <TabsList>
+              <TabsTrigger value="versions">Versions</TabsTrigger>
+              <TabsTrigger value="create">Create New Version</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="versions">
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Prompt Versions</h2>
+                {isLoading ? (
+                  <p>Loading...</p>
+                ) : promptVersions.length === 0 ? (
+                  <p>No versions found for this prompt type.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {Array.isArray(promptVersions) ? promptVersions.map((version: PromptVersion) => (
+                      <div key={version.id} className="p-4 border rounded-lg">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="text-lg font-medium">
+                              {version.versionName}
+                              {version.isActive && (
+                                <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                                  Active
+                                </span>
+                              )}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              Created: {new Date(version.createdAt).toLocaleString()}
+                              {version.updatedAt && version.updatedAt !== version.createdAt && (
+                                <> | Updated: {new Date(version.updatedAt).toLocaleString()}</>
+                              )}
+                            </p>
+                            {version.description && (
+                              <p className="mt-2">{version.description}</p>
+                            )}
+                            {version.author && (
+                              <p className="text-sm">Author: {version.author}</p>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            {!version.isActive && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleActivateVersion(version.id)}
+                              >
+                                Activate
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditClick(version)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleTestClick(version)}
+                            >
+                              Test
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <details>
+                            <summary className="cursor-pointer">View Content</summary>
+                            <pre className="mt-2 p-2 bg-gray-50 rounded overflow-auto text-sm">
+                              {version.content}
+                            </pre>
+                          </details>
+                        </div>
+                      </div>
+                    )) : <p>Error: Invalid prompt versions data</p>}
+                  </div>
                 )}
               </div>
-              
-              <div className="mb-4">
-                <h3 className="font-medium">Name</h3>
-                <p>{selectedVersion.versionName}</p>
+            </TabsContent>
+
+            <TabsContent value="create">
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Create New Version</h2>
+                <div>
+                  <Label htmlFor="version-name">Version Name *</Label>
+                  <Input
+                    id="version-name"
+                    value={newVersionName}
+                    onChange={(e) => setNewVersionName(e.target.value)}
+                    placeholder="e.g., v1.0, Initial Version"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="version-description">Description</Label>
+                  <Input
+                    id="version-description"
+                    value={newVersionDescription}
+                    onChange={(e) => setNewVersionDescription(e.target.value)}
+                    placeholder="Brief description of this version"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="version-author">Author</Label>
+                  <Input
+                    id="version-author"
+                    value={newVersionAuthor}
+                    onChange={(e) => setNewVersionAuthor(e.target.value)}
+                    placeholder="Your name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="version-content">Content *</Label>
+                  <Textarea
+                    id="version-content"
+                    value={newVersionContent}
+                    onChange={(e) => setNewVersionContent(e.target.value)}
+                    className="h-64 font-mono"
+                    placeholder="Enter the prompt content here"
+                    required
+                  />
+                </div>
+                <Button onClick={handleCreateVersion} disabled={isCreating}>
+                  {isCreating ? 'Creating...' : 'Create Version'}
+                </Button>
               </div>
-              
-              <div className="mb-4">
-                <h3 className="font-medium">Description</h3>
-                <p>{selectedVersion.description || 'No description'}</p>
-              </div>
-              
-              <div className="mb-4">
-                <h3 className="font-medium">Author</h3>
-                <p>{selectedVersion.author || 'Unknown'}</p>
-              </div>
-              
-              <div className="mb-4">
-                <h3 className="font-medium">Content</h3>
-                <pre className="bg-gray-100 p-4 rounded overflow-auto max-h-96 text-sm">
-                  {selectedVersion.content}
-                </pre>
-              </div>
-              
-              <div className="flex space-x-4">
-                <Link 
-                  href={`/admin/prompts/edit/${selectedVersion.id}`}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm"
-                >
-                  Edit
-                </Link>
-                
-                <Link 
-                  href={`/admin/prompts/test/${selectedVersion.id}`}
-                  className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded text-sm"
-                >
-                  Test
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
+            </TabsContent>
+          </Tabs>
+        </>
       )}
     </div>
   );
