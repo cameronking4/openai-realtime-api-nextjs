@@ -5,13 +5,14 @@ import { motion } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 
 interface MetricScore {
-  score: number;
-  confidence: number;
+  score: number | string;
+  confidence: number | string;
   justification: string;
 }
 
 interface AssessmentData {
-  metrics: {
+  // Support both old and new formats
+  metrics?: {
     anxiety: MetricScore;
     depression: MetricScore;
     distress: MetricScore;
@@ -21,9 +22,48 @@ interface AssessmentData {
     alliance: MetricScore;
     risk: MetricScore;
   };
+  // New format with domain assessments
+  domainAssessments?: {
+    emotionalDistress: MetricScore;
+    confidenceInManagingTreatment: MetricScore;
+    dailyLifeChallenges: MetricScore;
+    impactOfPhysicalSymptoms: MetricScore;
+    socialSupport: MetricScore;
+    worryAboutHealthAndFuture: MetricScore;
+    treatmentEngagement: MetricScore;
+    earlyWarningForCrisis: MetricScore;
+  };
+  // New format with general metrics
+  generalMetrics?: {
+    anxiety: MetricScore;
+    depression: MetricScore;
+    collaboration: MetricScore;
+    alliance: MetricScore;
+    risk: MetricScore;
+  };
+  // Assessment completeness tracking
+  assessmentCompleteness?: {
+    domainsWithSufficientData: string[];
+    domainsWithInsufficientData: string[];
+    overallCompletenessScore: number;
+  };
   communication?: {
     sentiment: string;
     patterns: string[];
+    copingMechanisms?: string[];
+    temporalPatterns?: string[];
+    engagementChanges?: string;
+  };
+  supportResources?: Array<{
+    resource: string;
+    type: string;
+    strength: number;
+  }>;
+  supportGaps?: string[];
+  riskFactors?: string[];
+  recommendations?: {
+    patient: string[];
+    clinician: string[];
   };
   summaries?: {
     clinical: string;
@@ -65,8 +105,8 @@ export default function AssessmentVisualization({
         // Try to parse the JSON
         const assessmentObj = JSON.parse(jsonString);
         
-        // Validate that it has the expected structure
-        if (assessmentObj && assessmentObj.metrics) {
+        // Validate that it has the expected structure (support both old and new formats)
+        if (assessmentObj && (assessmentObj.metrics || assessmentObj.domainAssessments)) {
           console.log("Successfully parsed assessment data");
           setParsedData(assessmentObj);
           setParseError(null);
@@ -90,7 +130,7 @@ export default function AssessmentVisualization({
             
             const assessmentObj = JSON.parse(jsonCandidate);
             
-            if (assessmentObj && assessmentObj.metrics) {
+            if (assessmentObj && (assessmentObj.metrics || assessmentObj.domainAssessments)) {
               console.log("Successfully parsed assessment data with alternative method");
               setParsedData(assessmentObj);
               setParseError(null);
@@ -278,25 +318,131 @@ export default function AssessmentVisualization({
         Psychological Assessment Results
       </h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        {Object.entries(parsedData.metrics).map(([key, metric]) => (
-          <MetricGauge 
-            key={key}
-            name={key}
-            score={metric.score}
-            confidence={metric.confidence}
-            justification={metric.justification}
-          />
-        ))}
-      </div>
+      {/* Domain Assessments Section - New Format */}
+      {parsedData.domainAssessments && (
+        <>
+          <h4 className="font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Domain Assessments
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {Object.entries(parsedData.domainAssessments).map(([key, metric]) => (
+              <MetricGauge 
+                key={key}
+                name={key}
+                score={metric.score}
+                confidence={metric.confidence}
+                justification={metric.justification}
+              />
+            ))}
+          </div>
+        </>
+      )}
+      
+      {/* General Metrics Section - New Format */}
+      {parsedData.generalMetrics && (
+        <>
+          <h4 className="font-medium text-slate-700 dark:text-slate-300 mb-2">
+            General Metrics
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {Object.entries(parsedData.generalMetrics).map(([key, metric]) => (
+              <MetricGauge 
+                key={key}
+                name={key}
+                score={metric.score}
+                confidence={metric.confidence}
+                justification={metric.justification}
+              />
+            ))}
+          </div>
+        </>
+      )}
+      
+      {/* Legacy Metrics - Old Format */}
+      {parsedData.metrics && !parsedData.domainAssessments && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {Object.entries(parsedData.metrics).map(([key, metric]) => (
+            <MetricGauge 
+              key={key}
+              name={key}
+              score={metric.score}
+              confidence={metric.confidence}
+              justification={metric.justification}
+            />
+          ))}
+        </div>
+      )}
+      
+      {/* Assessment Completeness - New Format */}
+      {parsedData.assessmentCompleteness && (
+        <div className="mb-6">
+          <h4 className="font-medium text-slate-700 dark:text-slate-300 mb-2">
+            Assessment Completeness
+          </h4>
+          <div className="bg-slate-100 dark:bg-slate-700 p-3 rounded-md">
+            <div className="mb-2">
+              <span className="text-sm font-medium">Overall Completeness: </span>
+              <span className="text-sm">{parsedData.assessmentCompleteness.overallCompletenessScore.toFixed(1)}/10</span>
+            </div>
+            
+            {parsedData.assessmentCompleteness.domainsWithInsufficientData.length > 0 && (
+              <div className="mb-2">
+                <span className="text-sm font-medium">Domains with insufficient data: </span>
+                <span className="text-sm text-amber-600 dark:text-amber-400">
+                  {parsedData.assessmentCompleteness.domainsWithInsufficientData.join(', ')}
+                </span>
+              </div>
+            )}
+            
+            <div>
+              <span className="text-sm font-medium">Domains with sufficient data: </span>
+              <span className="text-sm text-green-600 dark:text-green-400">
+                {parsedData.assessmentCompleteness.domainsWithSufficientData.join(', ')}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
       
       {parsedData.communication && (
         <div className="mb-6">
           <h4 className="font-medium text-slate-700 dark:text-slate-300 mb-2">
-            Communication Sentiment
+            Communication Insights
           </h4>
           <div className="bg-slate-100 dark:bg-slate-700 p-3 rounded-md">
-            {parsedData.communication.sentiment}
+            <div className="mb-2">
+              <span className="text-sm font-medium">Sentiment: </span>
+              <span className="text-sm">{parsedData.communication.sentiment}</span>
+            </div>
+            
+            {parsedData.communication.patterns && parsedData.communication.patterns.length > 0 && (
+              <div className="mb-2">
+                <span className="text-sm font-medium">Patterns: </span>
+                <ul className="list-disc list-inside text-sm">
+                  {parsedData.communication.patterns.map((pattern, index) => (
+                    <li key={index}>{pattern}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {parsedData.communication.copingMechanisms && parsedData.communication.copingMechanisms.length > 0 && (
+              <div className="mb-2">
+                <span className="text-sm font-medium">Coping Mechanisms: </span>
+                <ul className="list-disc list-inside text-sm">
+                  {parsedData.communication.copingMechanisms.map((mechanism, index) => (
+                    <li key={index}>{mechanism}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {parsedData.communication.engagementChanges && (
+              <div>
+                <span className="text-sm font-medium">Engagement Changes: </span>
+                <span className="text-sm">{parsedData.communication.engagementChanges}</span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -335,21 +481,28 @@ export default function AssessmentVisualization({
 
 interface MetricGaugeProps {
   name: string;
-  score: number;
-  confidence: number;
+  score: number | string;
+  confidence: number | string;
   justification: string;
 }
 
 function MetricGauge({ name, score, confidence, justification }: MetricGaugeProps) {
   // Format the name to be more readable
   const formatName = (name: string) => {
-    return name.charAt(0).toUpperCase() + name.slice(1);
+    // Convert camelCase to Title Case with spaces
+    return name
+      .replace(/([A-Z])/g, ' $1') // Insert a space before all capital letters
+      .replace(/^./, (str) => str.toUpperCase()) // Capitalize the first letter
+      .trim();
   };
+  
+  // Handle N/A values
+  const isNA = score === "N/A" || typeof score !== 'number';
   
   // Determine color based on the metric and score
   const getColor = (name: string, score: number) => {
     // For metrics where higher is worse (anxiety, depression, distress, risk)
-    if (['anxiety', 'depression', 'distress', 'risk'].includes(name)) {
+    if (['anxiety', 'depression', 'distress', 'risk', 'emotionalDistress', 'worryAboutHealthAndFuture', 'earlyWarningForCrisis'].includes(name)) {
       if (score <= 3) return 'bg-green-500';
       if (score <= 6) return 'bg-yellow-500';
       return 'bg-red-500';
@@ -362,7 +515,11 @@ function MetricGauge({ name, score, confidence, justification }: MetricGaugeProp
     }
   };
   
-  const color = getColor(name, score);
+  const color = !isNA ? getColor(name, score as number) : 'bg-gray-400';
+  const scoreDisplay = !isNA ? score : 'N/A';
+  const confidenceDisplay = !isNA ? 
+    (typeof confidence === 'number' ? (confidence * 10).toFixed(1) : confidence) : 
+    'N/A';
   
   return (
     <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-lg">
@@ -372,25 +529,31 @@ function MetricGauge({ name, score, confidence, justification }: MetricGaugeProp
         </span>
         <div className="flex items-center">
           <span className="text-lg font-semibold text-slate-700 dark:text-slate-300 mr-2">
-            {score}
+            {scoreDisplay}
           </span>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            /10
-          </span>
+          {!isNA && (
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              /10
+            </span>
+          )}
         </div>
       </div>
       
       <div className="w-full bg-slate-200 dark:bg-slate-600 rounded-full h-3 mb-3">
-        <motion.div 
-          className={`h-3 rounded-full ${color}`}
-          initial={{ width: 0 }}
-          animate={{ width: `${score * 10}%` }}
-          transition={{ duration: 1, ease: "easeOut" }}
-        />
+        {!isNA ? (
+          <motion.div 
+            className={`h-3 rounded-full ${color}`}
+            initial={{ width: 0 }}
+            animate={{ width: `${(score as number) * 10}%` }}
+            transition={{ duration: 1, ease: "easeOut" }}
+          />
+        ) : (
+          <div className="h-3 rounded-full bg-gray-400 w-full opacity-30" />
+        )}
       </div>
       
       <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 mb-3">
-        <span>Confidence: {(confidence * 10).toFixed(1)}/10</span>
+        <span>Confidence: {confidenceDisplay}{!isNA ? '/10' : ''}</span>
       </div>
       
       <div className="mt-2">

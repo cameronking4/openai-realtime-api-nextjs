@@ -1,0 +1,154 @@
+{
+  "domainAssessments": {
+    "emotionalDistress": {
+      "score": 7,
+      "confidence": 8.5,
+      "justification": "Patient expressed feeling overwhelmed by anxiety and sadness multiple times during the conversation."
+    },
+    "confidenceInManagingTreatment": {
+      "score": 4,
+      "confidence": 7,
+      "justification": "Patient mentioned some challenges with medication adherence but has strategies in place."
+    },
+    "dailyLifeChallenges": {
+      "score": 6,
+      "confidence": 7.5,
+      "justification": "Patient reported difficulty with daily activities due to fatigue and emotional state."
+    },
+    "impactOfPhysicalSymptoms": {
+      "score": 8,
+      "confidence": 9,
+      "justification": "Patient described severe pain and fatigue that significantly impacts daily functioning."
+    },
+    "socialSupport": {
+      "score": 3,
+      "confidence": 8,
+      "justification": "Patient has a supportive family network but expressed feeling isolated from friends."
+    },
+    "worryAboutHealthAndFuture": {
+      "score": 9,
+      "confidence": 9.5,
+      "justification": "Patient expressed significant worry about prognosis and future quality of life."
+    },
+    "treatmentEngagement": {
+      "score": "N/A",
+      "confidence": "N/A",
+      "justification": "Insufficient data gathered in conversation"
+    },
+    "earlyWarningForCrisis": {
+      "score": 5,
+      "confidence": 6,
+      "justification": "Patient mentioned occasional thoughts about emergency care but no immediate crisis."
+    }
+  },
+  "generalMetrics": {
+    "anxiety": {
+      "score": 8,
+      "confidence": 9,
+      "justification": "Patient showed consistent signs of anxiety throughout the conversation."
+    },
+    "depression": {
+      "score": 6,
+      "confidence": 7.5,
+      "justification": "Patient exhibited some depressive symptoms but maintains hope."
+    },
+    "collaboration": {
+      "score": 7,
+      "confidence": 8,
+      "justification": "Patient engaged well with the AI assistant and answered questions openly."
+    },
+    "alliance": {
+      "score": 8,
+      "confidence": 8.5,
+      "justification": "Patient showed trust in the assessment process and shared personal information."
+    },
+    "risk": {
+      "score": 4,
+      "confidence": 6,
+      "justification": "Some risk factors present but no immediate danger signs."
+    }
+  },
+  "communication": {
+    "sentiment": "Mixed, with predominant anxiety and occasional hope",
+    "patterns": [
+      "Frequently asks clarifying questions",
+      "Provides detailed responses about symptoms",
+      "Hesitates when discussing future"
+    ],
+    "copingMechanisms": [
+      "Family support",
+      "Distraction techniques",
+      "Prayer/spirituality"
+    ],
+    "temporalPatterns": [
+      "More anxious when discussing upcoming treatments",
+      "Calmer when talking about support systems"
+    ],
+    "engagementChanges": "Started hesitant but became more open as conversation progressed"
+  },
+  "supportResources": [
+    {
+      "resource": "Spouse",
+      "type": "personal",
+      "strength": 9
+    },
+    {
+      "resource": "Children",
+      "type": "personal",
+      "strength": 8
+    },
+    {
+      "resource": "Oncologist",
+      "type": "professional",
+      "strength": 7
+    },
+    {
+      "resource": "Church group",
+      "type": "community",
+      "strength": 6
+    }
+  ],
+  "supportGaps": [
+    "Lacks peer support from other cancer patients",
+    "Limited practical help with daily tasks"
+  ],
+  "riskFactors": [
+    "History of anxiety",
+    "Sleep disturbance",
+    "Pain management challenges",
+    "Financial concerns about treatment"
+  ],
+  "recommendations": {
+    "patient": [
+      "Join cancer support group to connect with peers",
+      "Practice daily mindfulness meditation for anxiety management",
+      "Discuss pain management options with healthcare team",
+      "Consider speaking with a financial counselor about treatment costs"
+    ],
+    "clinician": [
+      "Assess for clinical anxiety and consider treatment options",
+      "Evaluate pain management protocol effectiveness",
+      "Screen for depression at next visit",
+      "Provide information about hospital financial assistance programs"
+    ]
+  },
+  "summaries": {
+    "clinical": "57-year-old female with stage II breast cancer presenting with moderate-to-severe anxiety, particularly regarding prognosis and treatment outcomes. Patient reports significant impact of physical symptoms on daily functioning. Good family support system but limited peer support. Recommend anxiety screening, pain management review, and connection to peer support resources.",
+    "patient": "You're showing great courage in facing your cancer journey. While you have wonderful support from your family, connecting with others who understand your experience might help with the anxiety you're feeling. Your concerns about the future are completely normal, and there are strategies that can help manage these worries. Let's also make sure your pain is being properly addressed so you can enjoy daily activities more fully."
+  },
+  "assessmentCompleteness": {
+    "domainsWithSufficientData": [
+      "emotionalDistress",
+      "confidenceInManagingTreatment",
+      "dailyLifeChallenges",
+      "impactOfPhysicalSymptoms",
+      "socialSupport",
+      "worryAboutHealthAndFuture",
+      "earlyWarningForCrisis"
+    ],
+    "domainsWithInsufficientData": [
+      "treatmentEngagement"
+    ],
+    "overallCompletenessScore": 0.875
+  }
+}
