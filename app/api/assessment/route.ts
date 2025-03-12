@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { AI_ASSESSMENT_PROMPT } from '@/prompts/ai-conversation-templates';
+import { getActivePrompt } from '@/lib/prompt-service';
 import { callAnthropicAPI } from '@/app/_lib/anthropic-client';
 
 // Helper function to truncate transcript if it's too large
@@ -100,8 +100,12 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get the active AI assessment prompt from the database
+    const aiAssessmentPrompt = await getActivePrompt('AI_ASSESSMENT');
+    console.log('Using AI assessment prompt from database');
+
     // Combine the assessment prompt with the transcript
-    const prompt = `${AI_ASSESSMENT_PROMPT}\n\nHere is the transcript to analyze:\n\n${transcript}\n\nIMPORTANT: Your response MUST be a valid JSON object exactly matching the format specified above. Do not include any text before or after the JSON object.`;
+    const prompt = `${aiAssessmentPrompt}\n\nHere is the transcript to analyze:\n\n${transcript}\n\nIMPORTANT: Your response MUST be a valid JSON object exactly matching the format specified above. Do not include any text before or after the JSON object.`;
 
     console.log('Sending assessment request to Anthropic API...');
     console.log(`Total prompt length: ${prompt.length} characters`);

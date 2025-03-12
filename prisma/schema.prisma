@@ -1,0 +1,58 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+// Prompt Types table (categories of prompts)
+model PromptType {
+  id          Int             @id @default(autoincrement())
+  name        String          @unique
+  description String?
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @default(now()) @updatedAt @map("updated_at")
+  versions    PromptVersion[]
+
+  @@map("prompt_types")
+}
+
+// Prompt Versions table (individual versions of prompts)
+model PromptVersion {
+  id           Int               @id @default(autoincrement())
+  promptType   PromptType        @relation(fields: [promptTypeId], references: [id], onDelete: Cascade)
+  promptTypeId Int               @map("prompt_type_id")
+  versionName  String            @map("version_name")
+  description  String?
+  content      String
+  author       String?
+  isActive     Boolean           @default(false) @map("is_active")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @default(now()) @updatedAt @map("updated_at")
+  testResults  PromptTestResult[]
+
+  @@map("prompt_versions")
+}
+
+// Prompt Test Results table (for tracking performance)
+model PromptTestResult {
+  id              Int           @id @default(autoincrement())
+  promptVersion   PromptVersion @relation(fields: [promptVersionId], references: [id], onDelete: Cascade)
+  promptVersionId Int           @map("prompt_version_id")
+  testData        String?       @map("test_data")
+  result          String?
+  metrics         Json?
+  tester          String?
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  @@map("prompt_test_results")
+}

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { PSYCHO_ONCOLOGY_ASSESSMENT_PROMPT } from "../../../prompts/ai-conversation-templates";
+import { getActivePrompt } from "@/lib/prompt-service";
 
 // Define the tools that will be available to the AI
 const tools = [
@@ -81,12 +81,16 @@ export async function POST(request: Request) {
         // Log truncated API key for debugging
         console.log('Using API key:', apiKey.substring(0, 5) + '...' + apiKey.substring(apiKey.length - 3));
         
+        // Get the active psycho-oncology assessment prompt from the database
+        const assessmentPrompt = await getActivePrompt('PSYCHO_ONCOLOGY_ASSESSMENT');
+        console.log('Using prompt from database');
+        
         // Construct the session request body
         const sessionRequestBody = {
             model: "gpt-4o-realtime-preview-2024-12-17",
             voice: "alloy",
             modalities: modalities,
-            instructions: PSYCHO_ONCOLOGY_ASSESSMENT_PROMPT,
+            instructions: assessmentPrompt,
             tools: tools,
             // Options for tool_choice:
             // - "auto": Let the model decide when to call functions

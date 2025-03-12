@@ -1,27 +1,31 @@
 // This file is used to load environment variables for the Next.js application
 const fs = require('fs');
+const path = require('path');
+const dotenv = require('dotenv');
 
-// Read the API key from .env.local file directly
-let apiKey = '';
-try {
-  const envLocalContent = fs.readFileSync('.env.local', 'utf8');
-  const apiKeyMatch = envLocalContent.match(/OPENAI_API_KEY=([^\n]+)/);
-  if (apiKeyMatch && apiKeyMatch[1]) {
-    apiKey = apiKeyMatch[1];
-    console.log('Successfully read API key from .env.local');
+// Path to .env.local file
+const envLocalPath = path.resolve(process.cwd(), '.env.local');
+
+// Check if .env.local exists
+if (fs.existsSync(envLocalPath)) {
+  console.log('Loading environment variables from .env.local');
+  const envConfig = dotenv.parse(fs.readFileSync(envLocalPath));
+  
+  // Set environment variables
+  for (const key in envConfig) {
+    process.env[key] = envConfig[key];
+    console.log(`Set environment variable: ${key}`);
   }
-} catch (error) {
-  console.error('Error reading .env.local file:', error);
-}
-
-// Set the API key in the environment
-if (apiKey) {
-  process.env.OPENAI_API_KEY = apiKey;
-  console.log('OPENAI_API_KEY set in environment');
 } else {
-  console.error('Failed to set OPENAI_API_KEY in environment');
+  console.warn('.env.local file not found. Environment variables may not be properly set.');
+  console.warn('Run "node pull-env.js" to pull environment variables from Vercel.');
 }
 
+// Export environment variables for use in other files
 module.exports = {
-  apiKey
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  PERPLEXITY_API_KEY: process.env.PERPLEXITY_API_KEY,
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+  OPENAI_DIRECT_MODE: process.env.OPENAI_DIRECT_MODE
 }; 
