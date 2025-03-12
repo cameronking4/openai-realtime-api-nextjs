@@ -113,6 +113,13 @@ A Next.js application for cancer patient support with voice and text chat capabi
    - `PERPLEXITY_API_KEY`: Your Perplexity API key
    - `GEMINI_API_KEY`: Your Google Gemini API key
    - `OPENAI_DIRECT_MODE`: Set to "False"
+   
+   For model configuration (optional):
+   - `ANTHROPIC_SUGGESTION_MODEL`: Model for quick reply suggestions (default: claude-3-haiku-20240307)
+   - `ANTHROPIC_ASSESSMENT_MODEL`: Model for assessments (default: claude-3-sonnet-20240229)
+   - `ANTHROPIC_DEFAULT_MODEL`: Model for general API usage (default: claude-3-opus-20240229)
+   
+   See [MODEL_CONFIGURATION.md](MODEL_CONFIGURATION.md) for more details.
 
 4. **Deploy**
 
@@ -136,6 +143,11 @@ A Next.js application for cancer patient support with voice and text chat capabi
    PERPLEXITY_API_KEY=your_perplexity_api_key
    GEMINI_API_KEY=your_gemini_api_key
    OPENAI_DIRECT_MODE=False
+   
+   # Optional: Model Configuration
+   ANTHROPIC_SUGGESTION_MODEL=claude-3-haiku-20240307
+   ANTHROPIC_ASSESSMENT_MODEL=claude-3-sonnet-20240229
+   ANTHROPIC_DEFAULT_MODEL=claude-3-opus-20240229
    ```
 
 3. **Run Development Server**
@@ -163,6 +175,7 @@ A Next.js application for cancer patient support with voice and text chat capabi
 - Psychological assessment generation
 - Transcript management
 - Suggested responses
+- Configurable AI models for different tasks
 
 ## Technologies
 
@@ -172,3 +185,7 @@ A Next.js application for cancer patient support with voice and text chat capabi
 - Tailwind CSS
 - Anthropic Claude API
 - WebRTC for audio processing
+
+## Configuration
+
+- See [MODEL_CONFIGURATION.md](MODEL_CONFIGURATION.md) for details on configuring AI models.

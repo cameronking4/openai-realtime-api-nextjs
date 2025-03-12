@@ -3,6 +3,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { getAssessmentModelConfig, getDefaultModelConfig, getSuggestionModelConfig } from './model-config';
 
 /**
  * Creates a sanitized Anthropic client that ensures the API key is properly formatted
@@ -27,25 +28,30 @@ export function createAnthropicClient(apiKey: string): Anthropic {
  * Safely calls the Anthropic API with proper error handling
  * @param apiKey The Anthropic API key
  * @param prompt The prompt to send to the API
- * @param model The model to use
- * @param maxTokens The maximum number of tokens to generate
+ * @param model The model to use (optional, defaults to assessment model)
+ * @param maxTokens The maximum number of tokens to generate (optional)
+ * @param temperature The temperature to use (optional)
  * @returns The API response
  */
 export async function callAnthropicAPI(
   apiKey: string, 
   prompt: string,
-  model: string = 'claude-3-haiku-20240307',
-  maxTokens: number = 4000
+  model?: string,
+  maxTokens?: number,
+  temperature?: number
 ) {
   try {
+    // Get the assessment model configuration
+    const config = getAssessmentModelConfig();
+    
     // Create the client
     const anthropic = createAnthropicClient(apiKey);
     
     // Make the API call
     return await anthropic.messages.create({
-      model,
-      max_tokens: maxTokens,
-      temperature: 0.7,
+      model: model || config.model,
+      max_tokens: maxTokens || config.maxTokens,
+      temperature: temperature || config.temperature,
       messages: [
         {
           role: 'user',
@@ -61,18 +67,57 @@ export async function callAnthropicAPI(
 }
 
 /**
+ * Calls the Anthropic API specifically for generating suggestions
+ * @param apiKey The Anthropic API key
+ * @param prompt The prompt to send to the API
+ * @returns The API response
+ */
+export async function callAnthropicSuggestionAPI(
+  apiKey: string,
+  prompt: string
+) {
+  try {
+    // Get the suggestion model configuration
+    const config = getSuggestionModelConfig();
+    
+    // Create the client
+    const anthropic = createAnthropicClient(apiKey);
+    
+    // Make the API call
+    return await anthropic.messages.create({
+      model: config.model,
+      max_tokens: config.maxTokens,
+      temperature: config.temperature,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      system: "You are a helpful assistant generating possible patient replies to an AI medical assistant's messages. Your responses should be empathetic, diverse, and relevant to a cancer patient's context. Generate only JSON in your response with no other text.",
+    });
+  } catch (error) {
+    console.error('Error calling Anthropic API for suggestions:', error);
+    throw error;
+  }
+}
+
+/**
  * Tests the Anthropic API connection
  * @param apiKey The Anthropic API key
  * @returns The API response
  */
 export async function testAnthropicAPI(apiKey: string) {
   try {
+    // Get the default model configuration
+    const config = getDefaultModelConfig();
+    
     // Create the client
     const anthropic = createAnthropicClient(apiKey);
     
     // Make a simple test API call
     return await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: config.model,
       max_tokens: 50,
       messages: [
         {

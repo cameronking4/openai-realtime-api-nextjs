@@ -6,6 +6,9 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import fs from 'fs';
+import { getActivePrompt } from '@/lib/prompt-service';
+import { callAnthropicSuggestionAPI } from '@/app/_lib/anthropic-client';
+import { getSuggestionModelConfig } from '@/app/_lib/model-config';
 
 // Define response type for better type safety
 interface SuggestionsResponse {
@@ -20,19 +23,30 @@ function readAnthropicApiKey(): string | null {
     // Try to read from .env.local first
     if (fs.existsSync('.env.local')) {
       const envLocalContent = fs.readFileSync('.env.local', 'utf8');
-      const match = envLocalContent.match(/ANTHROPIC_API_KEY=([^\n]+)/);
+      
+      // Use a regex that handles quoted values
+      const match = envLocalContent.match(/ANTHROPIC_API_KEY="([^"]*)"/);
       if (match && match[1]) {
-        return match[1].trim();
+        // Clean the key by removing any whitespace or newlines
+        return match[1].replace(/\s+/g, '').trim();
       }
     }
     
     // Then try the regular .env file
     if (fs.existsSync('.env')) {
       const envContent = fs.readFileSync('.env', 'utf8');
-      const match = envContent.match(/ANTHROPIC_API_KEY=([^\n]+)/);
+      
+      // Use a regex that handles quoted values
+      const match = envContent.match(/ANTHROPIC_API_KEY="([^"]*)"/);
       if (match && match[1]) {
-        return match[1].trim();
+        // Clean the key by removing any whitespace or newlines
+        return match[1].replace(/\s+/g, '').trim();
       }
+    }
+    
+    // Fall back to environment variable
+    if (process.env.ANTHROPIC_API_KEY) {
+      return process.env.ANTHROPIC_API_KEY.replace(/\s+/g, '').trim();
     }
     
     return null;
@@ -84,36 +98,35 @@ export async function POST(req: Request) {
     console.log(`API key length: ${apiKey.length}`);
     console.log(`API key prefix: ${apiKey.substring(0, 10)}`);
     
-    // Initialize Anthropic client with direct API key
-    const anthropic = new Anthropic({
-      apiKey: apiKey,
-    });
-    
     try {
-      // Call Anthropic Claude Haiku API
+      // Get the prompt from the database
+      let promptContent;
+      try {
+        promptContent = await getActivePrompt('QUICK_ANSWERS_SUGGESTION');
+        console.log('Using prompt from database');
+      } catch (promptError) {
+        console.error('Error fetching prompt from database:', promptError);
+        // Fall back to hardcoded prompt if database fetch fails
+        promptContent = `Generate 4 short (less than 10 words each) possible replies to the following message from an AI assistant. 
+        The replies should be from the perspective of a patient with cancer talking to a support assistant. 
+        The replies should address the last question of the analyzed question message. 
+        Replies should represent spectrum of responses from a patient with cancer that will help to assess their status - one should be very positive, one should be very negative, one should be neutral, one should be a question to specify the question asked.
+        
+        AI Message: "{message}"
+        
+        Provide exactly 4 short responses that a patient might use to reply to this message. Each should represent different levels of distress and engagement.
+        Your output must be in a JSON format with just an array of strings called "suggestions".
+        For example: {"suggestions": ["Response 1", "Response 2", "Response 3", "Response 4"]}
+        Nothing else - just a valid JSON object.`;
+        console.log('Using fallback hardcoded prompt');
+      }
+      
+      // Replace {message} placeholder with actual message
+      const formattedPrompt = promptContent.replace('{message}', message);
+      
+      // Call Anthropic API using our specialized suggestion function
       console.log('Calling Anthropic API for suggestions...');
-      const response = await anthropic.messages.create({
-        model: 'claude-3-haiku-20240307',
-        max_tokens: 150,
-        temperature: 0.7,
-        messages: [
-          {
-            role: 'user',
-            content: `Generate 4 short (less than 10 words each) possible replies to the following message from an AI assistant. 
-            The replies should be from the perspective of a patient with cancer talking to a support assistant. 
-            The replies should addressthe last question of the analyzed question message. 
-            Replies should represent speactrum of responses from a patient with cancer that will help to assess their status - one should be very positive, one should be very negative, one should be neutral, one should be a question to specify the question asked.
-            
-            AI Message: "${message}"
-            
-            Provide exactly 4 short responses that a patient might use to reply to this message. Each should represent different levels of distress and engagement.
-            Your output must be in a JSON format with just an array of strings called "suggestions".
-            For example: {"suggestions": ["Response 1", "Response 2", "Response 3", "Response 4"]}
-            Nothing else - just a valid JSON object.`,
-          },
-        ],
-        system: "You are a helpful assistant generating possible patient replies to an AI medical assistant's messages. Your responses should be empathetic, diverse, and relevant to a cancer patient's context. Generate only JSON in your response with no other text.",
-      });
+      const response = await callAnthropicSuggestionAPI(apiKey, formattedPrompt);
       
       // Extract the text content from the response
       const responseText = response.content[0].type === 'text' ? response.content[0].text : '';
