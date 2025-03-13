@@ -189,3 +189,45 @@ A Next.js application for cancer patient support with voice and text chat capabi
 ## Configuration
 
 - See [MODEL_CONFIGURATION.md](MODEL_CONFIGURATION.md) for details on configuring AI models.
+
+## Environment Variables
+
+This project uses environment variables for configuration. Follow these steps to set up your environment:
+
+### Local Development
+
+1. Copy `.env.local.example` to `.env.local`:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+
+2. Edit `.env.local` and add your actual API keys and database credentials.
+
+3. The application will automatically use these environment variables during development.
+
+### Environment Files
+
+- `.env`: Default values, committed to version control. Contains no secrets.
+- `.env.local`: Local development values with secrets. **Never commit this file**.
+- `.env.production`: Production-specific settings without secrets.
+- `.env.local.example`: Example file showing required variables.
+
+### Vercel Deployment
+
+When deploying to Vercel:
+
+1. Set your production environment variables in the Vercel dashboard:
+   - Go to your project settings
+   - Navigate to the "Environment Variables" tab
+   - Add all required variables (API keys, database credentials, etc.)
+
+2. Vercel will automatically use these variables in your production environment.
+
+### Required Variables
+
+- `OPENAI_API_KEY`: Your OpenAI API key for LLM features
+- `ANTHROPIC_API_KEY`: Your Anthropic API key (if using Claude)
+- `DATABASE_URL`: PostgreSQL connection string
+- `DATABASE_URL_UNPOOLED`: Non-pooled PostgreSQL connection string
+
+See `.env.local.example` for a complete list of variables.

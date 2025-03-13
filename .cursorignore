@@ -8,10 +8,6 @@ node_modules/
 logs/
 
 # Environment variables
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 # Debug logs
 npm-debug.log*

@@ -53,6 +53,34 @@ model PromptTestResult {
   metrics         Json?
   tester          String?
   createdAt       DateTime      @default(now()) @map("created_at")
+  persona         Persona?      @relation(fields: [personaId], references: [id])
+  personaId       Int?          @map("persona_id")
 
   @@map("prompt_test_results")
+}
+
+// Patient Personas table (for testing with realistic patient profiles)
+model Persona {
+  id                  Int               @id @default(autoincrement())
+  name                String
+  age                 Int
+  gender              String
+  description         String?           @db.Text
+  cancerType          String            @map("cancer_type")
+  cancerStage         String            @map("cancer_stage")
+  diagnosisDate       DateTime?         @map("diagnosis_date")
+  treatmentStatus     String            @map("treatment_status")
+  psychologicalProfile Json              @map("psychological_profile")
+  communicationStyle  Json              @map("communication_style")
+  background          Json?
+  behavioralPatterns  Json?             @map("behavioral_patterns")
+  personalConcerns    Json?             @map("personal_concerns")
+  physicalSymptoms    Json?             @map("physical_symptoms")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @default(now()) @updatedAt @map("updated_at")
+  testResults         PromptTestResult[]
+  isArchived          Boolean           @default(false) @map("is_archived")
+  tags                String[]
+
+  @@map("personas")
 }
